@@ -1,103 +1,72 @@
-#root {
+/* Force full-height and top alignment */
+html, body, #root, .root-wrapper {
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  align-items: flex-start !important;
-  text-align: center !important;
-  width: 100% !important;
+  justify-content: flex-start !important; /* vertical start */
+  align-items: flex-start !important;     /* horizontal start */
 }
 
-.root-wrapper {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;   /* This is the key */
-  text-align: left !important;
-  width: 100% !important;
+/* Override Trimble Connect panel padding if present */
+.tc-panel-content {
+  padding-top: 0 !important;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
+/* Header box */
 .markNumberDiv {
-  position: absolute; /* Absolute positioning */
-  top: 0px; /* Align to the top */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%) scale(0.7); /* Adjust for centering and scale down */
-  padding: 10px; /* Add some padding */
-  border: 2px solid black; /* Border around the box */
-  border-radius: 5px; /* Optional: for rounded corners */
+  width: fit-content; /* adjusts to text */
+  display: flex; 
+  justify-content: center; /* center text inside box */
+  border: 2px solid black;
+  border-radius: 5px;
+  margin: 0 auto 20px auto; /* center box horizontally */
+  text-align: center;
+  padding: 0px 20px;
+  line-height: 1;
 }
 
+/* Clear All button */
 .buttonDiv {
-  position: absolute; /* Absolute positioning */
-  top: 800px; /* Align to the top */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%) scale(0.7); /* Adjust for centering and scale down */
-  padding: 10px; /* Add some padding */
+  width: fit-content; /* adjusts to text */
+  display: flex;
+  justify-content: center; /* horizontally center button */
+  padding: 10px;
+  margin: 0 auto 20px auto; /* center box horizontally */
+  margin-top: 20px;
+  border: 2px solid black;
+  text-align: center;
+  border-radius: 5px;
+  padding: 0px 20px;
 }
 
-
-.markNumberTitle {
-  margin: 0; /* Remove default margin */
-  height: auto; /* Allow the height to adjust */
-}
-
+/* Table container */
 .data-table-container {
+  width: 290px; /* fixed table width */
   margin-left: 0 !important;
   margin-right: auto !important;
   text-align: left !important;
-  width: 290px;
   overflow-y: auto;  
 }
 
-
-/* WebKit browsers */
+/* WebKit scrollbar styling */
 .data-table-container::-webkit-scrollbar {
-  width: 5px; /* Adjust width for vertical scrollbar */
-  height: 5px; /* Adjust height for horizontal scrollbar */
+  width: 5px;
+  height: 5px;
 }
-
 .data-table-container::-webkit-scrollbar-track {
-  background: #f1f1f1; /* Background of the scrollbar track */
+  background: #f1f1f1;
 }
-
 .data-table-container::-webkit-scrollbar-thumb {
-  background: #888; /* Background of the scrollbar thumb */
-  border-radius: 3px; /* Roundness of the scrollbar thumb */
+  background: #888;
+  border-radius: 3px;
+}
+.data-table-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
-.data-table-container::-webkit-scrollbar-thumb:hover {
-  background: #555; /* Background of the scrollbar thumb when hovered */
+/* Optional: table headers wrap text */
+.data-table-container th {
+  white-space: normal;
 }

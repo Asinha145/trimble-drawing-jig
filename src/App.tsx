@@ -35,7 +35,7 @@ function App() {
     }, 3000);
   }, []);
 
-  const markNumberStyle = { fontSize: '30px', color: 'black' };
+  const markNumberStyle = { fontSize: '20px', color: 'black' };
 
   // ✅ Selection + Annotation
   const handleSelect = async (objectId: number, _matchingDatum: datumItem) => {
@@ -160,7 +160,7 @@ if (_matchingDatum) {
       ) : (
         <div className="root-wrapper">
           <div className="markNumberDiv">
-            <h4 className="markNumberTitle" style={markNumberStyle}>
+            <h4 style={markNumberStyle}>
               {_modelName ?? 'Model name not found'}
               <br />
               {station_type ?? 'Station type not found'}
