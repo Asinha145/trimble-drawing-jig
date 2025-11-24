@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/bbsdatatable.tsx","./src/components/datatablecomponent.tsx","./src/module/arrayobjectutility.ts","./src/module/extractassembly.ts","./src/module/tcentrypoint.ts","./src/module/tcfixturetable.ts"],"errors":true,"version":"5.9.3"}

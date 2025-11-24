@@ -1,11 +1,8 @@
-import './FixtureDataTable.css';
-
 //Import modules
 import * as WorkspaceAPI from "trimble-connect-workspace-api";
 import { GetModelID } from '../module/TCFixtureTable';
 import DataTable from 'react-data-table-component';
 import { useState } from 'react';
-import { UIStore, useUIStore } from '../azustand/store'
 
 const customTableStyles = {
   headCells: {
@@ -34,7 +31,7 @@ const customTableStyles_Main = {
 
 const columns = [
   {
-    name: 'Mark',
+    name: 'Rebar Mark',
     selector: (row: any) => row.Mark,
     width: "77px",
   },
@@ -61,7 +58,7 @@ const columns = [
   },
 ];
 
-const Get_Columns_Expanded = (rowType: any, HiddenType: any) => {
+const Get_Columns_Expanded = () => {
   let columns_expanded: any = [];
 
  //For Looses and Cages displays below data column names
@@ -126,7 +123,7 @@ function BBSDataTable_Expanded(_data: any) {
   let expanded_Data = _data._data
   let rowType = _data._data[0].Type //Using to conditionally render different data for meshes
   let HiddenType = _data._data[0].HiddenType //used to trigger long and cross data for rebar assemblies   
-  let columns_expanded = Get_Columns_Expanded(rowType, HiddenType)
+  let columns_expanded = Get_Columns_Expanded()
 
   return (
     <div className='dataTableDiv_Expanded'>
@@ -142,9 +139,8 @@ function BBSDataTable_Expanded(_data: any) {
 
 }
 
-function BBSDataTable({ BBSRebardata, _API }: any) {
+function BBSDataTable({ BBSRebardata}: any) {
   //Zustand state to decide whether to load legacy UI or not
-  const { pluginVersion}: UIStore = useUIStore()
 
   const [isDimming, setDimming] = useState<boolean>(false);
 
@@ -217,7 +213,6 @@ function BBSDataTable({ BBSRebardata, _API }: any) {
 
         // }}
       />
-        <div className={isDimming ? 'overlay' : 'hidden'}> <h4>Dimming or Clearing View Please Wait...</h4></div>
       </div>
     </>
   )

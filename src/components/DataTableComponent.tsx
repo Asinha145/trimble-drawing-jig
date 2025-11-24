@@ -1,52 +1,52 @@
-//Component for rendering CEMC Assembly/Cast Unit Data i.e cover, lifting details, unit ID
-
-
-import { useEffect, useState } from 'react';
+import {datumItem} from './types';
 import './DataTableComponent.css';
 
-//Importing onClick modules from CameraView.ts module
-
-//UI Library Components from Ant Design
-import { CollapseProps, Collapse, Button, Flex } from 'antd';
-
-//Importing fixture table, BBS table, carousel, global API, castItemsData as props for display
-import { API } from '../module/TCEntryPoint';
-import BBSDataTable from './BBSDataTable';
-import { UIStore, useUIStore } from '../azustand/store'
-
-
-
-  
-//Private modules
-let preconfigured_View_Buttons_Visible: boolean = true;
-
-export const Hide_Preconfigured_View_Button = () => { //used to hide preconfigured view buttons if conc points empty used in TCFixtureTable
-  preconfigured_View_Buttons_Visible = false;
+interface DataTableProps {
+  Rebar: any[];
+  onSelect: (id: number, _matchingDatum: datumItem) => void;
 }
 
-  //Public Component
 
-function DataTableComponent({_BBSRebarItems}: any){
+export const DataTableComponent: React.FC<DataTableProps> = ({ Rebar, onSelect}) => {
+  const getPropValue = (item: any, propName: string): string => {
+    const customProps = item.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
+    return (
+      customProps?.properties.find((p: any) => p.name.includes(propName))?.value ?? "N/A"
+    );
+  };
 
-  //Zustand state to decide whether to load legacy UI or not
-  const { pluginVersion }: UIStore = useUIStore()  
+  return (
+    <div>
+      {Rebar.length === 0 ? (
+        <p>No rebar data available.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Fixture Position</th>
+              <th>Sub-Assembly Reference</th>
+              <th>Rebar Length</th>
+              <th>Select</th>
+            </tr>
+          </thead>
+          
+<tbody>
+  {[...Rebar] // clone to avoid mutating original
+    .sort((a, b) => a.datumItem.label - b.datumItem.label)
+    .map((item) => (
+      <tr key={item.id}>
+        <td>{item.datumItem.label}</td>
+        <td>{getPropValue(item.RTWItem, "bim2cam:Part Number")}</td>
+        <td>{getPropValue(item.rebarItem, "bim2cam:Rebar:Length")}</td> 
+        <td>
+          <button className="table-button" onClick={() => onSelect(item.RTWItem.id, item.datumItem)}>Select</button>
+        </td>
+      </tr>
+    ))}
+</tbody>
 
-    const [assemblyData, setAssemblyData] = useState<any>([])
-    const [revisisonState, setRevisisonState]= useState<any>([])
-    const [notesDataState, setNotesDataState] = useState<any>([])
-
-    const items: CollapseProps['items'] = [
-        {
-          key: '1',
-          label: 'Bar Bending Schedule',
-          children: <BBSDataTable BBSRebardata={_BBSRebarItems} _API={API} />,
-        }
-      ]
-            return (   
-        <>
-        <Collapse size='small' items={items} />
-        </>
-    )
-}
-
-export default DataTableComponent
+        </table>
+      )}
+    </div>
+  );
+};

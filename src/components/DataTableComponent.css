@@ -1,8 +1,48 @@
-.menuRow {
-    border: 2px solid transparent;
-    background-color: #ffffff;
-    border-color: rgba(22, 0, 148, 0.948);
-    font-weight: bold;
-    text-align: center;
-    border-radius: 1px;
-  }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid black;
+  padding: 2px;
+  text-align: center;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+.table-button {
+  display: inline-block;
+  width: 120px;              /* Fixed width */
+  height: 40px;              /* Fixed height */
+  background-color: #0078d4; /* Primary color */
+  color: #fff;               /* Text color */
+  border: none;              /* Remove default border */
+  border-radius: 6px;        /* Rounded corners */
+  font-size: 14px;           /* Text size */
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  line-height: 20px;         /* Vertically center text */
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.table-button:hover {
+  background-color: #005a9e; /* Darker shade on hover */
+  transform: scale(1.05);    /* Slight zoom effect */
+}
+
+.table-button:active {
+  background-color: #004578; /* Even darker when clicked */
+  transform: scale(0.98);    /* Pressed effect */
+}
+
+.table-button:disabled {
+  background-color: #ccc;    /* Gray for disabled */
+  color: #666;
+  cursor: not-allowed;
+  transform: none;
+}
