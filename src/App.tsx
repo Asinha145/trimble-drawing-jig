@@ -95,6 +95,9 @@ const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLI
       cogX = boundingBox[0].boundingBox.max.x*1000;
       colour = { r: 50, g: 50, b: 50, a: 255 }
     }
+    else if (partNumber.includes("REB")) {
+ cogX = boundingBox[0].boundingBox.min.x*1000;
+    }
 
 
 let BBXMin: number = boundingBox[0].boundingBox.min.x ?? 0;
@@ -160,7 +163,7 @@ if (_matchingDatum) {
       ) : (
         <div className="root-wrapper">
           <div className="markNumberDiv">
-            <h4 style={markNumberStyle}>
+            <h4 className="markNumberTitle" style={markNumberStyle}>
               {_modelName ?? 'Model name not found'}
               <br />
               {station_type ?? 'Station type not found'}
