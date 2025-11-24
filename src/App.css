@@ -1,8 +1,17 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.root-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;   /* This is the key */
+  text-align: left !important;
+  width: 100% !important;
 }
 
 .logo {
@@ -43,12 +52,20 @@
 
 .markNumberDiv {
   position: absolute; /* Absolute positioning */
-  top: 40px; /* Align to the top */
+  top: 0px; /* Align to the top */
   left: 50%; /* Center horizontally */
   transform: translateX(-50%) scale(0.7); /* Adjust for centering and scale down */
   padding: 10px; /* Add some padding */
   border: 2px solid black; /* Border around the box */
   border-radius: 5px; /* Optional: for rounded corners */
+}
+
+.buttonDiv {
+  position: absolute; /* Absolute positioning */
+  top: 800px; /* Align to the top */
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%) scale(0.7); /* Adjust for centering and scale down */
+  padding: 10px; /* Add some padding */
 }
 
 
@@ -58,16 +75,18 @@
 }
 
 .data-table-container {
-  max-height: 65vh; /* Adjust this height as needed */
-  overflow-y: auto;
-
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  text-align: left !important;
+  width: 290px;
+  overflow-y: auto;  
 }
 
 
 /* WebKit browsers */
 .data-table-container::-webkit-scrollbar {
-  width: 2px; /* Adjust width for vertical scrollbar */
-  height: 2px; /* Adjust height for horizontal scrollbar */
+  width: 5px; /* Adjust width for vertical scrollbar */
+  height: 5px; /* Adjust height for horizontal scrollbar */
 }
 
 .data-table-container::-webkit-scrollbar-track {

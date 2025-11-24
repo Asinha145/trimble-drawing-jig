@@ -158,7 +158,7 @@ if (_matchingDatum) {
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <div>
+        <div className="root-wrapper">
           <div className="markNumberDiv">
             <h4 className="markNumberTitle" style={markNumberStyle}>
               {_modelName ?? 'Model name not found'}
@@ -169,7 +169,7 @@ if (_matchingDatum) {
           <div className="data-table-container">
             <DataTableComponent Rebar={RebarList} onSelect={handleSelect}/>
           </div>
-          <div style={{ marginTop: "10px" }}>
+          <div className="buttonDiv" style={markNumberStyle}>
             <button onClick={handleClearAll}>Clear All</button>
           </div>
         </div>

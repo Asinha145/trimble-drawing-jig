@@ -23,10 +23,8 @@ export const DataTableComponent: React.FC<DataTableProps> = ({ Rebar, onSelect})
         <table>
           <thead>
             <tr>
-              <th>Fixture Position</th>
-              <th>Sub-Assembly Reference</th>
-              <th>Rebar Length</th>
-              <th>Select</th>
+              <th>Fixture<br />Position</th>
+              <th>Sub-Assembly<br />Reference</th>
             </tr>
           </thead>
           
@@ -35,12 +33,10 @@ export const DataTableComponent: React.FC<DataTableProps> = ({ Rebar, onSelect})
     .sort((a, b) => a.datumItem.label - b.datumItem.label)
     .map((item) => (
       <tr key={item.id}>
-        <td>{item.datumItem.label}</td>
-        <td>{getPropValue(item.RTWItem, "bim2cam:Part Number")}</td>
-        <td>{getPropValue(item.rebarItem, "bim2cam:Rebar:Length")}</td> 
-        <td>
-          <button className="table-button" onClick={() => onSelect(item.RTWItem.id, item.datumItem)}>Select</button>
+                <td>
+          <button className="table-button" onClick={() => onSelect(item.RTWItem.id, item.datumItem)}>{item.datumItem.label}</button>
         </td>
+        <td>{getPropValue(item.RTWItem, "bim2cam:Part Number")}</td>
       </tr>
     ))}
 </tbody>
