@@ -148,16 +148,14 @@ export const getPlatesHWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
                 let cogY: number = ((boundingBox[0].boundingBox.min.y + boundingBox[0].boundingBox.max.y)/2)*1000;
                 let cogZ: number = ((boundingBox[0].boundingBox.min.z + boundingBox[0].boundingBox.max.z)/2)*1000;
 
-                let dimensionOffset: number;
-                if (cogY > 0 && cogY < 50) {
-                    dimensionOffset = -100;
+                let dimensionOffset: number; //this number will change depending on final origin point. TODO: Communicate requirements of this
+                if (cogY < 50) {
+                    dimensionOffset = -450;
                 }
                 else
                 {
-                    dimensionOffset = 100;
+                    dimensionOffset = 450;
                 }
-
-
             plateItems.push({Plate: object, Name: partNumberStr, dimensionStart: {positionX: cogX, positionY: cogY, positionZ: cogZ}, dimensionEnd: {positionX: cogX, positionY: cogY+dimensionOffset, positionZ: cogZ}});
         }
     

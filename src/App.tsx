@@ -263,6 +263,9 @@ return (
         <div className="data-table-container">
         <p>Horizontal data here </p>
         </div>
+        <div className="buttonDiv" style={markNumberStyle}>
+          <button onClick={handleClearAll}>Clear All</button>
+        </div>
       </div>
     ) : (
       <p>Station type not supported</p>
