@@ -36,7 +36,7 @@ export const DataTableComponentVWS: React.FC<DataTableProps> = ({ Rebar, onSelec
                 <td>
           <button className="table-button" onClick={() => onSelect(item.RTWItem.id, item.datumItem)}>{item.datumItem.label}</button>
         </td>
-        <td>{getPropValue(item.RTWItem, "bim2cam:Part Number")}</td>
+        <td>{getPropValue(item.RTWItem, "bim2cam:Part Number").replace('RTW-', '')}</td>
       </tr>
     ))}
 </tbody>
