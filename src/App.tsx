@@ -156,17 +156,26 @@ for (let i = 0; i < stringerboundingBox.length; i++) {
         filtered.push(current);
     }
 }
+const colours = [
+  { r: 255, g: 0,   b: 0,   a: 255 }, // red
+  { r: 0,   g: 255, b: 0,   a: 255 }, // green
+  { r: 0,   g: 0,   b: 255, a: 255 }, // blue
+  { r: 255, g: 255, b: 0,   a: 255 }, // yellow
+  { r: 255, g: 0,   b: 255, a: 255 }, // magenta
+  { r: 0,   g: 255, b: 255, a: 255 }, // cyan
+];
 
-let yOffset = 0;
-if (filtered.length > 1) {
-  yOffset = -5;
-}
-//dimension list of points here
+let colorIndex = 0;
+let yOffset = filtered.length > 1 ? -5 : 0;
+
 if (_matchingDatum) {
 
     for (const box of filtered) {
 
-        const smallestX = box.xMin;   // use the minX from each filtered element
+        const smallestX = box.xMin;
+
+        const color = colours[colorIndex % colours.length]; 
+        colorIndex++;  // move to next colour
 
         await API.markup.addMeasurementMarkups([
             {
@@ -180,11 +189,13 @@ if (_matchingDatum) {
                     positionY: _matchingDatum.positionY + yOffset,
                     positionZ: 16
                 },
-                color: { r: 255, g: 0, b: 0, a: 255 }
+                color
             }
         ]);
-yOffset += 10; // Increment Y offset for next dimension
-        console.log("Dimension added to stringer at X =", smallestX);
+
+        yOffset += 10;
+
+        console.log(`Dimension added at X=${smallestX} with colour:`, color);
     }
 
 } else {
