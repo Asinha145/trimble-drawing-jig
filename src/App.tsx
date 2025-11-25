@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { DataTableComponent } from './components/DataTableComponent';
 import { ConnectViewer, API } from './module/TCEntryPoint';
-import { GetModelID, modelName, GetRebars } from './module/TCFixtureTable';
+import { GetModelID, modelName, GetRebarsVWS } from './module/TCFixtureTable';
 import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity } from 'trimble-connect-workspace-api';
-import {datumItem} from './components/types';
+import {datumItem, boundingBox} from './components/types';
 import { start } from 'repl';
 
 function App() {
-  const [RebarList, setRebarList] = useState<any[]>([]);
+  const [RebarList, setSubAssemblyList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modelID, setModelID] = useState<string>("");
   const [datumList, setDatumList] = useState<{ positionX: number; positionY: number; positionZ: number; label: string }[]>([]);
@@ -28,8 +28,8 @@ function App() {
         setModelName(modelName.slice(0, 5));
         setStation_type("Vertical Weld Station");
       }
-      const getRebars = await GetRebars(API);
-      setRebarList(getRebars);
+      const getRebars = await GetRebarsVWS(API);
+      setSubAssemblyList(getRebars);
 
       setLoading(false);
     }, 3000);
@@ -73,8 +73,10 @@ for (const child of heirarchyChildren) {
 }
 }
 objectIDList.push(objectId); //also add the parent assembly id
-let stringerStarts: any[] = [];
+let stringerboundingBox: boundingBox[] = [];
 let yComponent: number = 0;
+
+//need to assess if the stringer bounding boxes are very close or overlapping to decide how many stringers to dimension
 
 for (const child of objectIDList) {
     // 3️⃣ Get properties for annotation
@@ -87,7 +89,14 @@ for (const child of objectIDList) {
 const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
     let partNumber: string = customProps?.properties.find((p: any) => p.name.includes("bim2cam:Part Number"))?.value ?? "N/A";
     if (partNumber.includes("STR")) {
-        stringerStarts.push({positionX: boundingBox[0].boundingBox.min.x, positionY: boundingBox[0].boundingBox.min.y, positionZ: boundingBox[0].boundingBox.min.z});
+        stringerboundingBox.push({
+          xMin: boundingBox[0].boundingBox.min.x*1000,
+          yMin: boundingBox[0].boundingBox.min.y*1000,
+          zMin: boundingBox[0].boundingBox.min.z*1000,
+          xMax: boundingBox[0].boundingBox.max.x*1000,
+          yMax: boundingBox[0].boundingBox.max.y*1000,
+          zMax: boundingBox[0].boundingBox.max.z*1000
+        });
     }
     yComponent = cogY;
         let colour = { r: 255, g: 0, b: 0, a: 255 }
@@ -124,26 +133,62 @@ await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: 
   }
   }
 
-  const smallestX = Math.min(...stringerStarts.map(obj => obj.positionX))*1000;
+  let smallestX: any;
+// First: sort by min X
+stringerboundingBox.sort((a, b) => a.xMin - b.xMin);
+console.log("Sorted Stringer Bounding Boxes:", stringerboundingBox);
+// Now filter based on overlap and gap rules
+const filtered: typeof stringerboundingBox = [];
 
-if (_matchingDatum) {
-  await API.markup.addMeasurementMarkups([
-    {
-      start: {
-        positionX: _matchingDatum.positionX,
-        positionY: _matchingDatum.positionY,
-        positionZ: _matchingDatum.positionZ,
-      },
-      end: {
-        positionX: smallestX,
-        positionY: _matchingDatum.positionY,
-        positionZ: 16
-      },
-      color: { r: 255, g: 0, b: 0, a: 255 }
+for (let i = 0; i < stringerboundingBox.length; i++) {
+    const current = stringerboundingBox[i];
+
+    if (i === 0) {
+        filtered.push(current);
+        continue;
     }
-  ]);
+
+    const previous = stringerboundingBox[i - 1];  // <-- compare to actual previous
+    const clashes = current.xMin < previous.xMax;
+    const gap = current.xMin - previous.xMax;
+
+    if (!(clashes || gap < 3)) {
+        filtered.push(current);
+    }
+}
+
+let yOffset = 0;
+if (filtered.length > 1) {
+  yOffset = -5;
+}
+//dimension list of points here
+if (_matchingDatum) {
+
+    for (const box of filtered) {
+
+        const smallestX = box.xMin;   // use the minX from each filtered element
+
+        await API.markup.addMeasurementMarkups([
+            {
+                start: {
+                    positionX: _matchingDatum.positionX,
+                    positionY: _matchingDatum.positionY + yOffset,
+                    positionZ: _matchingDatum.positionZ,
+                },
+                end: {
+                    positionX: smallestX,
+                    positionY: _matchingDatum.positionY + yOffset,
+                    positionZ: 16
+                },
+                color: { r: 255, g: 0, b: 0, a: 255 }
+            }
+        ]);
+yOffset += 10; // Increment Y offset for next dimension
+        console.log("Dimension added to stringer at X =", smallestX);
+    }
+
 } else {
-  console.log("No datum found within tolerance.");
+    console.log("No datum found within tolerance.");
 }
 
 

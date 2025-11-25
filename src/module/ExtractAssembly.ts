@@ -1,7 +1,7 @@
 import * as WorkspaceAPI from "trimble-connect-workspace-api";
 import { GetIFCProperty } from "./ArrayObjectUtility";
 import { ConnectViewer, API } from './TCEntryPoint';
-import { GetModelID, modelName,  GetRebars} from './TCFixtureTable';
+import { GetModelID, modelName,  GetRebarsVWS} from './TCFixtureTable';
 import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity } from 'trimble-connect-workspace-api';
 
 

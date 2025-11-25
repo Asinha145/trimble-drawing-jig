@@ -38,7 +38,7 @@ export const GetModelID = async (API: WorkspaceAPI.WorkspaceAPI) => {
     return _modelID;
 }
 
-export const GetRebars = async (API: WorkspaceAPI.WorkspaceAPI) => {
+export const GetRebarsVWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
 
     modelID = await GetModelID(API);
     const objectListArray = await API.viewer.getObjects();
@@ -104,9 +104,6 @@ export const GetRebars = async (API: WorkspaceAPI.WorkspaceAPI) => {
                 Math.abs(datum.positionY - targetY) <= tolerance // Y within ±5 mm
                 );
                 });
-console.log("rebarPart", rebarPart);
-console.log("itemPart", item);
-console.log(rebarProperties[0]);
             rebarItems.push({RTWItem: item, datumItem: matchingDatum, rebarItem: rebarProperties[0]});
         }
     });
