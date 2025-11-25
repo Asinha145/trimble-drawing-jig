@@ -9,6 +9,7 @@ import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity } f
 export let modelID: any = {};
 export let modelName: string = "NULL";
 export let rebarItems: any[] = [];
+export let plateItems: any[] = [];
 let IFC_FixtureList: any[] = [];
 let haveExtracted: boolean = false //only extract eip fixture once to prevent list doubling
 export let Cast_In_Items: any[] = [];
@@ -111,5 +112,57 @@ export const GetRebarsVWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
 
         }
         return rebarItems;
+
+}
+
+export const getPlatesHWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
+
+    modelID = await GetModelID(API);
+    const objectListArray = await API.viewer.getObjects();
+    const objectList = objectListArray[0].objects;
+    plateItems = [];
+
+
+
+    for (let object of objectList) {
+        let objectPropertyArray = await API.viewer.getObjectProperties(modelID, [object.id]);
+        for (let _object of objectPropertyArray) {
+        const IFCProperties = _object.properties ?? [];
+        
+    const ifcSolidworksPropIndex = GetIFCProperty("SOLIDWORKS Custom Properties", IFCProperties);
+    // GetIFCProperty now returns number | null — guard against not-found
+    if (ifcSolidworksPropIndex == null) continue; // skip if not found
+
+    const SOLIDWORKSCUSTOMPROPERTIES = IFCProperties[ifcSolidworksPropIndex as number]?.properties ?? [];
+    
+    const partNumberIndex = GetIFCProperty("bim2cam:Part Number", SOLIDWORKSCUSTOMPROPERTIES);
+
+    if (partNumberIndex == null) continue;
+
+    const partNumber = SOLIDWORKSCUSTOMPROPERTIES[partNumberIndex as number]?.value ?? "";
+        // Ensure partNumber is a string before calling includes
+        const partNumberStr = typeof partNumber === "string" ? partNumber : String(partNumber);
+        if (partNumberStr.includes("PLT")) {
+            const boundingBox = await API.viewer.getObjectBoundingBoxes(modelID, [object.id]);
+                let cogX: number = ((boundingBox[0].boundingBox.min.x + boundingBox[0].boundingBox.max.x)/2)*1000;
+                let cogY: number = ((boundingBox[0].boundingBox.min.y + boundingBox[0].boundingBox.max.y)/2)*1000;
+                let cogZ: number = ((boundingBox[0].boundingBox.min.z + boundingBox[0].boundingBox.max.z)/2)*1000;
+
+                let dimensionOffset: number;
+                if (cogY > 0 && cogY < 50) {
+                    dimensionOffset = -100;
+                }
+                else
+                {
+                    dimensionOffset = 100;
+                }
+
+
+            plateItems.push({Plate: object, Name: partNumberStr, dimensionStart: {positionX: cogX, positionY: cogY, positionZ: cogZ}, dimensionEnd: {positionX: cogX, positionY: cogY+dimensionOffset, positionZ: cogZ}});
+        }
+    
+        }
+    }
+        return plateItems;
 
 }

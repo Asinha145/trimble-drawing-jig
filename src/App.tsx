@@ -1,15 +1,16 @@
 
 import { useState, useEffect } from 'react';
 import './App.css';
-import { DataTableComponent } from './components/DataTableComponent';
+import { DataTableComponentVWS, DataTableComponentHWS } from './components/DataTableComponent';
 import { ConnectViewer, API } from './module/TCEntryPoint';
-import { GetModelID, modelName, GetRebarsVWS } from './module/TCFixtureTable';
+import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS } from './module/TCFixtureTable';
 import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity } from 'trimble-connect-workspace-api';
 import {datumItem, boundingBox} from './components/types';
 import { start } from 'repl';
 
 function App() {
   const [RebarList, setSubAssemblyList] = useState<any[]>([]);
+  const [PlateList, setPlateList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modelID, setModelID] = useState<string>("");
   const [datumList, setDatumList] = useState<{ positionX: number; positionY: number; positionZ: number; label: string }[]>([]);
@@ -27,10 +28,16 @@ function App() {
         await API.extension.requestFocus();
         setModelName(modelName.slice(0, 5));
         setStation_type("Vertical Weld Station");
+        const getRebars = await GetRebarsVWS(API);
+        setSubAssemblyList(getRebars);
       }
-      const getRebars = await GetRebarsVWS(API);
-      setSubAssemblyList(getRebars);
-
+      else if (modelName.includes("HWS")) {
+        await API.extension.requestFocus();
+        setModelName(modelName.slice(0, 5));
+        setStation_type("Horizontal Weld Station");
+        const getPlates = await getPlatesHWS(API);
+        setPlateList(getPlates);
+      }
       setLoading(false);
     }, 3000);
   }, []);
@@ -38,7 +45,7 @@ function App() {
   const markNumberStyle = { fontSize: '20px', color: 'black' };
 
   // ✅ Selection + Annotation
-  const handleSelect = async (objectId: number, _matchingDatum: datumItem) => {
+  const handleSelectVWS = async (objectId: number, _matchingDatum: datumItem) => {
     if (!modelID) {
       console.error("Model ID not initialized yet.");
       return;
@@ -212,29 +219,56 @@ if (_matchingDatum) {
     
   };
 
-  return (
-    <>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className="root-wrapper">
-          <div className="markNumberDiv">
-            <h4 className="markNumberTitle" style={markNumberStyle}>
-              {_modelName ?? 'Model name not found'}
-              <br />
-              {station_type ?? 'Station type not found'}
-            </h4>
-          </div>
-          <div className="data-table-container">
-            <DataTableComponent Rebar={RebarList} onSelect={handleSelect}/>
-          </div>
-          <div className="buttonDiv" style={markNumberStyle}>
-            <button onClick={handleClearAll}>Clear All</button>
-          </div>
+    // ✅ Clear All button handler
+  const handleSelectPlates = async () => {
+    await API.markup.removeMarkups();
+    for (const plate of PlateList) {
+    await API.markup.addTextMarkup([{ start: plate.dimensionStart, end: plate.dimensionEnd, text: plate.Name, color:  { r: 255, g: 0,   b: 0,   a: 255 }}]);
+    }
+    
+  };
+
+return (
+  <>
+    {loading ? (
+      <p>Loading...</p>
+    ) : station_type === "Vertical Weld Station" ? (
+      <div className="root-wrapper">
+        <div className="markNumberDiv">
+          <h4 className="markNumberTitle" style={markNumberStyle}>
+            {_modelName ?? 'Model name not found'}
+            <br />
+            {station_type ?? 'Station type not found'}
+          </h4>
         </div>
-      )}
-    </>
-  );
+        <div className="data-table-container">
+          <DataTableComponentVWS Rebar={RebarList} onSelect={handleSelectVWS} />
+        </div>
+        <div className="buttonDiv" style={markNumberStyle}>
+          <button onClick={handleClearAll}>Clear All</button>
+        </div>
+      </div>
+    ) : station_type === "Horizontal Weld Station" ? (
+      <div className="root-wrapper">
+        <div className="markNumberDiv">
+          <h4 className="markNumberTitle" style={markNumberStyle}>
+            {_modelName ?? 'Model name not found'}
+            <br />
+            Horizontal Weld Station
+          </h4>
+        </div>
+        <div className="buttonDiv" style={markNumberStyle}>
+          <button onClick={handleSelectPlates}>Show required plates</button>
+        </div>
+        <div className="data-table-container">
+        <p>Horizontal data here </p>
+        </div>
+      </div>
+    ) : (
+      <p>Station type not supported</p>
+    )}
+  </>
+);
 }
 
 export default App;
