@@ -1,13 +1,13 @@
 import {datumItem} from './types';
 import './DataTableComponent.css';
+import { GetIFCProperty } from "../module/ArrayObjectUtility";
 
-interface DataTableProps {
+interface DataTablePropsVWS {
   Rebar: any[];
   onSelect: (id: number, _matchingDatum: datumItem) => void;
 }
 
-
-export const DataTableComponentVWS: React.FC<DataTableProps> = ({ Rebar, onSelect}) => {
+export const DataTableComponentVWS: React.FC<DataTablePropsVWS> = ({ Rebar, onSelect}) => {
   const getPropValue = (item: any, propName: string): string => {
     const customProps = item.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
     return (
@@ -27,7 +27,6 @@ export const DataTableComponentVWS: React.FC<DataTableProps> = ({ Rebar, onSelec
               <th>Sub-Assembly<br />Reference</th>
             </tr>
           </thead>
-          
 <tbody>
   {[...Rebar] // clone to avoid mutating original
     .sort((a, b) => a.datumItem.label - b.datumItem.label)
@@ -47,40 +46,103 @@ export const DataTableComponentVWS: React.FC<DataTableProps> = ({ Rebar, onSelec
   );
 };
 
-export const DataTableComponentHWS: React.FC<DataTableProps> = ({ Rebar, onSelect}) => {
-  const getPropValue = (item: any, propName: string): string => {
-    const customProps = item.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
+import React from "react";
+
+interface PartRow {
+  col1: string;
+  col2: number | string; // allow header-like text
+  id: number[];
+}
+
+interface DataTablePropsHWS {
+  partRows: PartRow[];
+  onSelect?: (id: number[]) => void; // optional click handler
+}
+
+export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, onSelect }) => {
+  const headerCellStyle: React.CSSProperties = {
+    textAlign: "left",
+    padding: "6px",
+    fontWeight: 600,
+    borderBottom: "2px solid #333",
+    backgroundColor: "#f5f5f5",
+  };
+
+  const bodyCellStyle: React.CSSProperties = {
+    textAlign: "left",
+    padding: "6px",
+    borderBottom: "1px solid #ccc",
+  };
+
+  // Identify exact header-like rows in the body
+  const isSectionHeaderExact = (row: PartRow) => {
+    const left = String(row.col1).trim();
+    const right = String(row.col2).trim().toUpperCase();
     return (
-      customProps?.properties.find((p: any) => p.name.includes(propName))?.value ?? "N/A"
+      (left === "Part Number" && right === "QUANTITY") ||
+      (left === "Sub-Assembly Reference" && right === "FIXTURE POSITION")
     );
   };
 
+  // Only show button when col2 is a number (actual quantity)
+  const isQuantityRow = (row: PartRow): row is { col1: string; col2: number; id: number[] } =>
+    typeof row.col2 === "number" && Number.isFinite(row.col2);
+
   return (
     <div>
-      {Rebar.length === 0 ? (
-        <p>No rebar data available.</p>
+      {!partRows || partRows.length === 0 ? (
+        <p>No parts available.</p>
       ) : (
-        <table>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th>Fixture<br />Position</th>
-              <th>Sub-Assembly<br />Reference</th>
+              <th style={headerCellStyle}>Sub-Assembly Reference</th>
+              <th style={headerCellStyle}>Fixture Position</th>
             </tr>
           </thead>
-          
-<tbody>
-  {[...Rebar] // clone to avoid mutating original
-    .sort((a, b) => a.datumItem.label - b.datumItem.label)
-    .map((item) => (
-      <tr key={item.id}>
-                <td>
-          <button className="table-button" onClick={() => onSelect(item.RTWItem.id, item.datumItem)}>{item.datumItem.label}</button>
-        </td>
-        <td>{getPropValue(item.RTWItem, "bim2cam:Part Number")}</td>
-      </tr>
-    ))}
-</tbody>
 
+          <tbody>
+            {partRows.map((row, idx) => {
+              // Render section headers inside tbody as <th> to match your header formatting
+              if (isSectionHeaderExact(row)) {
+                return (
+                  <tr key={`section-${idx}`}>
+                    <th style={headerCellStyle} scope="col">
+                      {row.col1}
+                    </th>
+                    <th style={headerCellStyle} scope="col">
+                      {row.col2}
+                    </th>
+                  </tr>
+                );
+              }
+
+              // Regular data row
+              return (
+                <tr key={`${row.col1}-${row.col2}`}>
+                  <td style={bodyCellStyle}>{row.col1}</td>
+
+                  <td style={bodyCellStyle}>
+                    {isQuantityRow(row) ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}> 
+
+<button
+  className="table-button"
+  onClick={() => { if (onSelect) onSelect(row.id); }}
+>
+  {row.col2}
+</button>
+
+                      </div>
+                    ) : (
+                      // For non-numeric col2 (e.g., headers), just render the text
+                      <span>{row.col2}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
       )}
     </div>

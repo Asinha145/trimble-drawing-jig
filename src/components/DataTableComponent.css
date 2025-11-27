@@ -48,3 +48,32 @@ th {
   cursor: not-allowed;
   transform: none;
 }
+
+.parent-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+.parent-table th,
+.parent-table td {
+  border: 1px solid #444;
+  padding: 8px;
+  text-align: center;
+}
+
+.child-row td {
+  padding: 0;
+  background: #f8f8f8;
+}
+
+.child-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.child-table th,
+.child-table td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}

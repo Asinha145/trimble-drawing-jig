@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { DataTableComponentVWS, DataTableComponentHWS } from './components/DataTableComponent';
 import { ConnectViewer, API } from './module/TCEntryPoint';
-import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS } from './module/TCFixtureTable';
+import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS, getSubAssembliesHWS } from './module/TCFixtureTable';
 import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity } from 'trimble-connect-workspace-api';
 import {datumItem, boundingBox} from './components/types';
 import { start } from 'repl';
@@ -11,6 +11,7 @@ import { start } from 'repl';
 function App() {
   const [RebarList, setSubAssemblyList] = useState<any[]>([]);
   const [PlateList, setPlateList] = useState<any[]>([]);
+  const [subAssemblyListHWS, setSubAssemblyListHWS] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modelID, setModelID] = useState<string>("");
   const [datumList, setDatumList] = useState<{ positionX: number; positionY: number; positionZ: number; label: string }[]>([]);
@@ -35,8 +36,8 @@ function App() {
         await API.extension.requestFocus();
         setModelName(modelName.slice(0, 5));
         setStation_type("Horizontal Weld Station");
-        const getPlates = await getPlatesHWS(API);
-        setPlateList(getPlates);
+        setPlateList(await getPlatesHWS(API));
+        setSubAssemblyListHWS(await getSubAssembliesHWS(API));
       }
       setLoading(false);
     }, 3000);
@@ -68,7 +69,6 @@ const entitiesToIsolate: IModelEntities[] = [
     //API.viewer.isolateEntities(entitiesToIsolate);
 
 //API.viewer.setSelection(selector, "remove");
-console.log("Selected Object ID:", objectId);
 
 const heirarchyChildren: HierarchyEntity[] = await API.viewer.getHierarchyChildren(modelID, [objectId]);
 
@@ -122,15 +122,12 @@ let BBZMin: number = boundingBox[0].boundingBox.min.z ?? 0;
 let BBXMax: number = boundingBox[0].boundingBox.max.x ?? 0;
 let BBYMax: number = boundingBox[0].boundingBox.max.y ?? 0;
 let BBZMax: number = boundingBox[0].boundingBox.max.z ?? 0;
-console.log("BBXMin:", BBXMin, "BBYMin:", BBYMin, "BBZMin:", BBZMin);
-console.log("BBXMax:", BBXMax, "BBYMax:", BBYMax, "BBZMax:", BBZMax);
-console.log("Bounding Box for Object ID", child.id, ":", boundingBox[0].boundingBox.min.x);
 
 
 
     let startPosition: any = { positionX: cogX, positionY: cogY, positionZ: cogZ };
     let endPosition: any = { positionX: cogX, positionY: cogY+100, positionZ: cogZ };
-    console.log("Start Position:", startPosition, "End Position:", endPosition);
+
     
   if (partNumber.includes("RTW")) {
   await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber + "\n" + " Fixture position: " + _matchingDatum.label, color:  colour}]);
@@ -143,7 +140,6 @@ await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: 
   let smallestX: any;
 // First: sort by min X
 stringerboundingBox.sort((a, b) => a.xMin - b.xMin);
-console.log("Sorted Stringer Bounding Boxes:", stringerboundingBox);
 // Now filter based on overlap and gap rules
 const filtered: typeof stringerboundingBox = [];
 
@@ -173,36 +169,34 @@ const colours = [
 ];
 
 let colorIndex = 0;
-let yOffset = filtered.length > 1 ? -5 : 0;
 
 if (_matchingDatum) {
 
-    for (const box of filtered) {
+    for (let i = 0; i < filtered.length; i++) {
+        const box = filtered[i];
 
-        const smallestX = box.xMin;
+        const startX = i === 0 ? _matchingDatum.positionX : filtered[i - 1].xMax; // start from previous xMax or datum
+        const endX = box.xMin; // always end at current box xMin
+        const zComponent = box.zMin;
 
         const color = colours[colorIndex % colours.length]; 
-        colorIndex++;  // move to next colour
+        //colorIndex++;  // move to next colour
 
         await API.markup.addMeasurementMarkups([
             {
                 start: {
-                    positionX: _matchingDatum.positionX,
-                    positionY: _matchingDatum.positionY + yOffset,
-                    positionZ: _matchingDatum.positionZ,
+                    positionX: startX,
+                    positionY: _matchingDatum.positionY,
+                    positionZ: zComponent
                 },
                 end: {
-                    positionX: smallestX,
-                    positionY: _matchingDatum.positionY + yOffset,
-                    positionZ: 16
+                    positionX: endX,
+                    positionY: _matchingDatum.positionY,
+                    positionZ: zComponent
                 },
                 color
             }
         ]);
-
-        yOffset += 10;
-
-        console.log(`Dimension added at X=${smallestX} with colour:`, color);
     }
 
 } else {
@@ -227,6 +221,24 @@ if (_matchingDatum) {
     }
     
   };
+
+const handleSelectHWS = async (objectId: number[]) => {
+if (!modelID) {
+      console.error("Model ID not initialized yet.");
+      return;
+    }
+    await API.markup.removeMarkups();
+console.log("objectId array received:", objectId);
+    // 1️⃣ Select the object
+    const selector: ObjectSelector = {
+      modelObjectIds: [{ modelId: modelID, objectRuntimeIds: objectId }]
+    };
+
+    console.log("Selecting HWS Sub-Assembly with ID:", objectId);
+    API.viewer.setSelection(selector, "set"); //this is selecting the sub assembly as a whole, there is no way to access the internal parts of the assembly
+    API.viewer.setCamera(selector);
+
+}
 
 return (
   <>
@@ -258,17 +270,17 @@ return (
           </h4>
         </div>
         <div className="buttonDiv" style={markNumberStyle}>
-          <button onClick={handleSelectPlates}>Show required plates</button>
+          <button onClick={handleSelectPlates}>Show profile plates</button>
         </div>
         <div className="data-table-container">
-        <p>Horizontal data here </p>
+          <DataTableComponentHWS partRows={subAssemblyListHWS} onSelect={handleSelectHWS} />
         </div>
         <div className="buttonDiv" style={markNumberStyle}>
           <button onClick={handleClearAll}>Clear All</button>
         </div>
       </div>
     ) : (
-      <p>Station type not supported</p>
+      <p>Station type not supported</p> 
     )}
   </>
 );
