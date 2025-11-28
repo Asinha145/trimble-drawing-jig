@@ -21,7 +21,7 @@ html, body, #root, .root-wrapper {
   justify-content: center; /* center text inside box */
   border: 2px solid black;
   border-radius: 5px;
-  margin: 0 auto 20px auto; /* center box horizontally */
+  margin: 0 auto 5px auto; /* center box horizontally */
   text-align: center;
   padding: 0px 20px;
   line-height: 1;
@@ -32,9 +32,9 @@ html, body, #root, .root-wrapper {
   width: fit-content; /* adjusts to text */
   display: flex;
   justify-content: center; /* horizontally center button */
-  padding: 10px;
-  margin: 0 auto 20px auto; /* center box horizontally */
-  margin-top: 20px;
+  padding: 0px;
+  margin: 0 auto 5px auto; /* center box horizontally */
+  margin-top: 0px;
   border: 2px solid black;
   text-align: center;
   border-radius: 5px;
