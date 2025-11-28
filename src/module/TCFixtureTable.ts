@@ -287,3 +287,41 @@ return rows;
 //line one of the table
 
 }
+
+
+export const getStationConfigHWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
+modelID = await GetModelID(API);
+    const objectListArray = await API.viewer.getObjects();
+    const objectList = objectListArray[0].objects;
+    let stationType: any;
+
+    for (let object of objectList) {
+        let objectPropertyArray = await API.viewer.getObjectProperties(modelID, [object.id]);
+
+        for (let _object of objectPropertyArray) {
+            const IFCProperties = _object.properties ?? [];
+console.log("Checking IFC Properties for station config:", IFCProperties);
+            const ifcSolidworksPropIndex = GetIFCProperty("OrientedBoundingBox", IFCProperties);
+            // GetIFCProperty now returns number | null — guard against not-found
+            if (ifcSolidworksPropIndex == null) continue; // skip if not found
+
+            const SOLIDWORKSCUSTOMPROPERTIES = IFCProperties[ifcSolidworksPropIndex as number]?.properties ?? [];
+
+            const partNumberIndex = GetIFCProperty("Name", SOLIDWORKSCUSTOMPROPERTIES);
+
+            if (partNumberIndex == null) continue;
+
+            const partNumber = SOLIDWORKSCUSTOMPROPERTIES[partNumberIndex as number]?.value ?? "";
+            // Ensure partNumber is a string before calling includes
+            const partNumberStr = typeof partNumber === "string" ? partNumber : String(partNumber);
+            console.log("Checking part number for station config:", partNumberStr);
+            if (partNumberStr.includes("HWS-P-0015")) {
+                stationType = "Standard/Theobold";
+        }
+        else if (partNumberStr.includes("HWS-P-0020")) {
+            stationType = "Bespoke";
+        }
+    }
+    }
+    return stationType;
+}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { DataTableComponentVWS, DataTableComponentHWS } from './components/DataTableComponent';
 import { ConnectViewer, API } from './module/TCEntryPoint';
-import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS, getSubAssembliesHWS } from './module/TCFixtureTable';
+import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS, getSubAssembliesHWS, getStationConfigHWS } from './module/TCFixtureTable';
 import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity } from 'trimble-connect-workspace-api';
 import {datumItem, boundingBox} from './components/types';
 import { start } from 'repl';
@@ -17,6 +17,7 @@ function App() {
   const [datumList, setDatumList] = useState<{ positionX: number; positionY: number; positionZ: number; label: string }[]>([]);
   const [_modelName, setModelName] = useState<string>("");
   const [station_type, setStation_type] = useState<string>("");
+  const [station_Config, setStation_Config] = useState<any>("");
   useEffect(() => {
     ConnectViewer();
 
@@ -36,6 +37,7 @@ function App() {
         await API.extension.requestFocus();
         setModelName(modelName.slice(0, 5));
         setStation_type("Horizontal Weld Station");
+        setStation_Config(await getStationConfigHWS(API));
         setPlateList(await getPlatesHWS(API));
         setSubAssemblyListHWS(await getSubAssembliesHWS(API));
       }
@@ -65,7 +67,7 @@ const entitiesToIsolate: IModelEntities[] = [
     modelId: modelID // Replace with your model ID
   }
 ];
-
+ 
     //API.viewer.isolateEntities(entitiesToIsolate);
 
 //API.viewer.setSelection(selector, "remove");
@@ -238,6 +240,24 @@ console.log("objectId array received:", objectId);
     API.viewer.setSelection(selector, "set"); //this is selecting the sub assembly as a whole, there is no way to access the internal parts of the assembly
     API.viewer.setCamera(selector);
 
+    for (const id of objectId) {
+    const objectData = await API.viewer.getObjectProperties(modelID, [id]);
+    const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
+    let partNumber: string = customProps?.properties.find((p: any) => p.name.includes("bim2cam:Part Number"))?.value ?? "N/A";
+
+    const boundingBox = await API.viewer.getObjectBoundingBoxes(modelID, [id]);
+    let cogX: number = ((boundingBox[0].boundingBox.min.x + boundingBox[0].boundingBox.max.x)/2)*1000;
+    let cogY: number = ((boundingBox[0].boundingBox.min.y + boundingBox[0].boundingBox.max.y)/2)*1000;
+    let cogZ: number = ((boundingBox[0].boundingBox.min.z + boundingBox[0].boundingBox.max.z)/2)*1000;
+
+    let startPosition: any = { positionX: cogX, positionY: cogY, positionZ: cogZ };
+    let endPosition: any = { positionX: cogX, positionY: cogY+100, positionZ: cogZ };
+
+  if (partNumber.includes("STR")) {
+  partNumber = partNumber.slice(-2); //remove last 3 characters
+    }
+    await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color:  { r: 255, g: 0,   b: 0,   a: 255 }}]);
+  }
 }
 
 return (
@@ -267,6 +287,8 @@ return (
             {_modelName ?? 'Model name not found'}
             <br />
             Horizontal Weld Station
+            <br />
+            {station_Config ?? 'Station config not found'}
           </h4>
         </div>
         <div className="buttonDiv" style={markNumberStyle}>

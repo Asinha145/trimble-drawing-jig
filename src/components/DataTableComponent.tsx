@@ -65,6 +65,14 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
     padding: "6px",
     fontWeight: 600,
     borderBottom: "2px solid #333",
+    backgroundColor: "#afafaf9a",
+  };
+
+    const subheaderCellStyle: React.CSSProperties = {
+    textAlign: "left",
+    padding: "6px",
+    fontWeight: 600,
+    borderBottom: "2px solid #333",
     backgroundColor: "#f5f5f5",
   };
 
@@ -79,8 +87,15 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
     const left = String(row.col1).trim();
     const right = String(row.col2).trim().toUpperCase();
     return (
-      (left === "Part Number" && right === "QUANTITY") ||
       (left === "Sub-Assembly Reference" && right === "FIXTURE POSITION")
+    );
+  };
+
+    const isSubHeaderExact = (row: PartRow) => {
+    const left = String(row.col1).trim();
+    const right = String(row.col2).trim().toUpperCase();
+    return (
+      (left === "Part Number" && right === "QUANTITY")
     );
   };
 
@@ -111,6 +126,18 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
                       {row.col1}
                     </th>
                     <th style={headerCellStyle} scope="col">
+                      {row.col2}
+                    </th>
+                  </tr>
+                );
+              }
+              else if (isSubHeaderExact(row)) {
+                return (
+                  <tr key={`section-${idx}`}>
+                    <th style={subheaderCellStyle} scope="col">
+                      {row.col1}
+                    </th>
+                    <th style={subheaderCellStyle} scope="col">
                       {row.col2}
                     </th>
                   </tr>
