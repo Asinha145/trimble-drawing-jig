@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { DataTableComponentVWS, DataTableComponentHWS } from './components/DataTableComponent';
 import { ConnectViewer, API } from './module/TCEntryPoint';
-import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS, getSubAssembliesHWS, getStationConfigHWS } from './module/TCFixtureTable';
-import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity } from 'trimble-connect-workspace-api';
+import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS, getSubAssembliesHWS, getStationConfigHWS, getDatumSideHWS, getOmittedStringers, getStringerColours } from './module/TCFixtureTable';
+import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity, ObjectState } from 'trimble-connect-workspace-api';
 import {datumItem, boundingBox} from './components/types';
 import { start } from 'repl';
+import { get } from 'http';
 
 function App() {
   const [RebarList, setSubAssemblyList] = useState<any[]>([]);
@@ -18,6 +19,9 @@ function App() {
   const [_modelName, setModelName] = useState<string>("");
   const [station_type, setStation_type] = useState<string>("");
   const [station_Config, setStation_Config] = useState<any>("");
+  const [datumSide, setDatumSide] = useState<string>("");
+  const [omittedStringers, setOmittedStringers] = useState<any[]>([]);
+  const [spacerColours, setSpacerColours] = useState<{ [key: number]: { r: number; g: number; b: number; a: number } }>({});
   useEffect(() => {
     ConnectViewer();
 
@@ -32,6 +36,7 @@ function App() {
         setStation_type("Vertical Weld Station");
         const getRebars = await GetRebarsVWS(API);
         setSubAssemblyList(getRebars);
+        setOmittedStringers(await getOmittedStringers(API, "Vertical Weld Station"));
       }
       else if (modelName.includes("HWS")) {
         await API.extension.requestFocus();
@@ -39,13 +44,80 @@ function App() {
         setStation_type("Horizontal Weld Station");
         setStation_Config(await getStationConfigHWS(API));
         setPlateList(await getPlatesHWS(API));
-        setSubAssemblyListHWS(await getSubAssembliesHWS(API));
+        setDatumSide(await getDatumSideHWS(API));
+        setOmittedStringers(await getOmittedStringers(API));
+        setSpacerColours(await getStringerColours(API));
+        setSubAssemblyListHWS(await getSubAssembliesHWS(API, spacerColours));
+        await colourHWSSpacers(spacerColours);
       }
       setLoading(false);
     }, 3000);
   }, []);
 
   const markNumberStyle = { fontSize: '20px', color: 'black' };
+
+
+// Types from Trimble Connect Workspace API
+// ColorRGBA uses 0–255 for all components (including alpha).
+type RGBA = { r: number; g: number; b: number; a: number };
+
+const colourHWSSpacers = async (spacerColours: Map<number, RGBA> | { [id: number]: RGBA }) => {
+  // Optional: clear any existing markups you added elsewhere
+  await API.markup.removeMarkups();
+
+  // Your helper that returns the currently loaded model id (you already use this)
+  const modelId = await GetModelID(API);
+
+  // ---- Group ids by colour to minimize setObjectState calls ----
+  // Key format "r-g-b-a" so identical colours are batched together.
+  const groups = new Map<string, { color: RGBA; ids: number[] }>();
+
+  const addPair = (id: number, color: RGBA) => {
+    if (!Number.isFinite(id)) return;
+    const key = `${color.r}-${color.g}-${color.b}-${color.a}`;
+    const g = groups.get(key);
+    if (g) g.ids.push(id);
+    else groups.set(key, { color, ids: [id] });
+  };
+
+  if (spacerColours instanceof Map) {
+    for (const [id, color] of spacerColours.entries()) addPair(id, color);
+  } else {
+    for (const [idStr, color] of Object.entries(spacerColours)) {
+      addPair(Number(idStr), color as RGBA);
+    }
+  }
+
+  // ---- Apply colour per batch using ViewerAPI.setObjectState ----
+  for (const { color, ids } of groups.values()) {
+    if (!ids.length) continue;
+
+    // Build the ObjectSelector using runtime ids for this model.
+    const selector: ObjectSelector = {
+      modelObjectIds: [
+        {
+          modelId,               // File.versionId for model files in Connect
+          objectRuntimeIds: ids, // the runtime ids you collected
+        },
+      ],
+    };
+
+    // Build ObjectState: set color & ensure visible.
+    // ColorRGBA expects 0–255 for r,g,b,a (TC Workspace API).
+    const state: ObjectState = {
+      color: { r: color.r, g: color.g, b: color.b, a: color.a },
+      visible: true, //      visible: true, // ensure the object is shown when colour is applied
+    };
+console.log("Applying colour ", color, " to ids ", ids);
+    await API.viewer.setObjectState(selector, state);
+  }
+
+}
+
+
+
+
+
 
   // ✅ Selection + Annotation
   const handleSelectVWS = async (objectId: number, _matchingDatum: datumItem) => {
@@ -67,10 +139,6 @@ const entitiesToIsolate: IModelEntities[] = [
     modelId: modelID // Replace with your model ID
   }
 ];
- 
-    //API.viewer.isolateEntities(entitiesToIsolate);
-
-//API.viewer.setSelection(selector, "remove");
 
 const heirarchyChildren: HierarchyEntity[] = await API.viewer.getHierarchyChildren(modelID, [objectId]);
 
@@ -230,13 +298,11 @@ if (!modelID) {
       return;
     }
     await API.markup.removeMarkups();
-console.log("objectId array received:", objectId);
     // 1️⃣ Select the object
     const selector: ObjectSelector = {
       modelObjectIds: [{ modelId: modelID, objectRuntimeIds: objectId }]
     };
 
-    console.log("Selecting HWS Sub-Assembly with ID:", objectId);
     API.viewer.setSelection(selector, "set"); //this is selecting the sub assembly as a whole, there is no way to access the internal parts of the assembly
     API.viewer.setCamera(selector);
 
@@ -252,13 +318,46 @@ console.log("objectId array received:", objectId);
 
     let startPosition: any = { positionX: cogX, positionY: cogY, positionZ: cogZ };
     let endPosition: any = { positionX: cogX, positionY: cogY+100, positionZ: cogZ };
-
+  let color = { r: 0, g: 0, b: 255, a: 255 };
   if (partNumber.includes("STR")) {
   partNumber = partNumber.slice(-2); //remove last 3 characters
+  if (omittedStringers.includes(id)) {
+  partNumber += " - Omitted Stringer";
+  color = { r: 255, g: 0, b: 0, a: 255 };
     }
-    await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color:  { r: 255, g: 0,   b: 0,   a: 255 }}]);
+  }
+    await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color}]);
+//changing the colours of the parts
+
+
+
+
+  //Add dimension between datum and plate sub-assembly
+
+    if (partNumber.includes("REB") && (datumSide.includes("EAST") || datumSide.includes("WEST"))) {
+//get bounding box of rebar, east uses max, west uses min
+      let startX: number = datumSide === "EAST" ? boundingBox[0].boundingBox.max.x*1000 : boundingBox[0].boundingBox.min.x*1000;
+      let endX: number = datumSide === "EAST" ? 13951 : -623; //fixed datum but based off origin position. Needs updating if origin changes
+      let color = { r: 255, g: 0, b: 0, a: 255 };
+       await API.markup.addMeasurementMarkups([
+            {
+                start: {
+                    positionX: startX,
+                    positionY: cogY,
+                    positionZ: cogZ
+                },
+                end: {
+                    positionX: endX,
+                    positionY: cogY,
+                    positionZ: cogZ
+                },
+                color
+            }
+       ]);
+    }
   }
 }
+
 
 return (
   <>

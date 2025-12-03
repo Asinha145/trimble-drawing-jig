@@ -48,10 +48,15 @@ export const DataTableComponentVWS: React.FC<DataTablePropsVWS> = ({ Rebar, onSe
 
 import React from "react";
 
+// --- Types ---
+type RGBA = { r: number; g: number; b: number; a: number };
+
 interface PartRow {
   col1: string;
   col2: number | string; // allow header-like text
+  col3: string;
   id: number[];
+  colour?: RGBA;         // optional: present only on unique part rows with matched colour
 }
 
 interface DataTablePropsHWS {
@@ -59,6 +64,7 @@ interface DataTablePropsHWS {
   onSelect?: (id: number[]) => void; // optional click handler
 }
 
+// --- Component ---
 export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, onSelect }) => {
   const headerCellStyle: React.CSSProperties = {
     textAlign: "left",
@@ -68,7 +74,7 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
     backgroundColor: "#afafaf9a",
   };
 
-    const subheaderCellStyle: React.CSSProperties = {
+  const subheaderCellStyle: React.CSSProperties = {
     textAlign: "left",
     padding: "6px",
     fontWeight: 600,
@@ -86,22 +92,36 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
   const isSectionHeaderExact = (row: PartRow) => {
     const left = String(row.col1).trim();
     const right = String(row.col2).trim().toUpperCase();
-    return (
-      (left === "Sub-Assembly Reference" && right === "FIXTURE POSITION")
-    );
+    return left === "Sub-Assembly Reference" && right === "FIXTURE POSITION";
   };
 
-    const isSubHeaderExact = (row: PartRow) => {
+  const isSubHeaderExact = (row: PartRow) => {
     const left = String(row.col1).trim();
     const right = String(row.col2).trim().toUpperCase();
-    return (
-      (left === "Part Number" && right === "QUANTITY")
-    );
+    return left === "Part Number" && right === "QUANTITY";
   };
 
   // Only show button when col2 is a number (actual quantity)
-  const isQuantityRow = (row: PartRow): row is { col1: string; col2: number; id: number[] } =>
+  const isQuantityRow = (
+    row: PartRow
+  ): row is { col1: string; col2: number; col3: string; id: number[]; colour?: RGBA } =>
     typeof row.col2 === "number" && Number.isFinite(row.col2);
+
+  // --- Helpers: RGBA -> CSS rgba() and readable text colour ---
+  const toCssRgba = (c?: RGBA) => {
+    if (!c) return undefined;
+    const a01 = Math.max(0, Math.min(1, c.a / 255)); // normalize alpha to 0..1 for CSS
+    return `rgba(${c.r}, ${c.g}, ${c.b}, ${a01})`;
+  };
+
+  const pickTextColor = (rgbaCss?: string) => {
+    if (!rgbaCss) return undefined;
+    const m = rgbaCss.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    if (!m) return undefined;
+    const r = +m[1], g = +m[2], b = +m[3];
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return luminance > 0.6 ? "#000" : "#fff";
+  };
 
   return (
     <div>
@@ -130,8 +150,7 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
                     </th>
                   </tr>
                 );
-              }
-              else if (isSubHeaderExact(row)) {
+              } else if (isSubHeaderExact(row)) {
                 return (
                   <tr key={`section-${idx}`}>
                     <th style={subheaderCellStyle} scope="col">
@@ -145,21 +164,36 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
               }
 
               // Regular data row
+              const bg = toCssRgba(row.colour); // present on unique part rows only
+              const fg = pickTextColor(bg) ?? undefined;
+
               return (
-                <tr key={`${row.col1}-${row.col2}`}>
+                <tr key={`${row.col1}-${row.col2}-${idx}`}>
                   <td style={bodyCellStyle}>{row.col1}</td>
 
                   <td style={bodyCellStyle}>
                     {isQuantityRow(row) ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}> 
-
-<button
-  className="table-button"
-  onClick={() => { if (onSelect) onSelect(row.id); }}
->
-  {row.col2}
-</button>
-
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button
+                          className="table-button"
+                          // Only override colours when a row colour exists; otherwise keep default CSS
+                          style={
+                            bg
+                              ? {
+                                  backgroundColor: bg,
+                                  color: fg,
+                                  border: "none",
+                                }
+                              : undefined
+                          }
+                          onClick={() => {
+                            if (onSelect) onSelect(row.id);
+                          }}
+                        >
+                          {/* e.g., "3  @16 mm" or "3  @16mm" depending on col3 */}
+                          {String(row.col2)}
+                          {row.col3 ? `@${row.col3}` : ""}
+                        </button>
                       </div>
                     ) : (
                       // For non-numeric col2 (e.g., headers), just render the text
@@ -174,4 +208,4 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
       )}
     </div>
   );
-};
+}
