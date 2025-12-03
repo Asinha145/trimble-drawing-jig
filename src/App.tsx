@@ -298,6 +298,9 @@ if (_matchingDatum) {
   const handleClearAll = () => {
     API.viewer.setSelection({ modelObjectIds: [] }, "set");
     API.viewer.reset();
+    if (station_type === "Horizontal Weld Station") {
+      colourHWSSpacers(spacerColours);
+    }
     
   };
 
@@ -340,7 +343,7 @@ if (!modelID) {
   if (partNumber.includes("STR")) {
   partNumber = partNumber.slice(-2); //remove last 3 characters
   if (omittedStringers.includes(id)) {
-  partNumber += " - Omitted Stringer";
+  partNumber += " - Omitted Stringer \n Do not place in fixture";
   color = { r: 255, g: 0, b: 0, a: 255 };
     }
   }
