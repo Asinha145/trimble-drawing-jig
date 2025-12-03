@@ -22,37 +22,55 @@ function App() {
   const [datumSide, setDatumSide] = useState<string>("");
   const [omittedStringers, setOmittedStringers] = useState<any[]>([]);
   const [spacerColours, setSpacerColours] = useState<{ [key: number]: { r: number; g: number; b: number; a: number } }>({});
-  useEffect(() => {
-    ConnectViewer();
 
-    setTimeout(async function () {
-      //await API.extension.requestFocus();
-      const id = await GetModelID(API);
-      setModelID(id);
+useEffect(() => {
+  ConnectViewer();
 
-      if (modelName.includes("VWS")) {
-        await API.extension.requestFocus();
-        setModelName(modelName.slice(0, 5));
-        setStation_type("Vertical Weld Station");
-        const getRebars = await GetRebarsVWS(API);
-        setSubAssemblyList(getRebars);
-        setOmittedStringers(await getOmittedStringers(API, "Vertical Weld Station"));
-      }
-      else if (modelName.includes("HWS")) {
-        await API.extension.requestFocus();
-        setModelName(modelName.slice(0, 5));
-        setStation_type("Horizontal Weld Station");
-        setStation_Config(await getStationConfigHWS(API));
-        setPlateList(await getPlatesHWS(API));
-        setDatumSide(await getDatumSideHWS(API));
-        setOmittedStringers(await getOmittedStringers(API));
-        setSpacerColours(await getStringerColours(API));
-        setSubAssemblyListHWS(await getSubAssembliesHWS(API, spacerColours));
-        await colourHWSSpacers(spacerColours);
-      }
-      setLoading(false);
-    }, 3000);
-  }, []);
+  setTimeout(async function () {
+    const id = await GetModelID(API);
+    setModelID(id);
+
+    if (modelName.includes("VWS")) {
+      await API.extension.requestFocus();
+      setModelName(modelName.slice(0, 5));
+      setStation_type("Vertical Weld Station");
+
+      const getRebars = await GetRebarsVWS(API);
+      setSubAssemblyList(getRebars);
+
+      setOmittedStringers(await getOmittedStringers(API, "Vertical Weld Station"));
+    }
+    else if (modelName.includes("HWS")) {
+      await API.extension.requestFocus();
+      setModelName(modelName.slice(0, 5));
+      setStation_type("Horizontal Weld Station");
+
+      // Preload other HWS data in parallel (optional, faster)
+      const [stationConfig, plates, datumSide, omitted] = await Promise.all([
+        getStationConfigHWS(API),
+        getPlatesHWS(API),
+        getDatumSideHWS(API),
+        getOmittedStringers(API),
+      ]);
+      setStation_Config(stationConfig);
+      setPlateList(plates);
+      setDatumSide(datumSide);
+      setOmittedStringers(omitted);
+
+      // Get colours, then use the local 'colours' variable (not the state yet)
+      const colours = await getStringerColours(API);
+      setSpacerColours(colours); // schedule state update
+
+      // Use the freshly resolved colours for downstream work in this tick
+      const subAssemblies = await getSubAssembliesHWS(API, colours);
+      setSubAssemblyListHWS(subAssemblies);
+
+      await colourHWSSpacers(colours);
+    }
+
+    setLoading(false);
+  }, 3000);
+}, []);
 
   const markNumberStyle = { fontSize: '20px', color: 'black' };
 
