@@ -182,7 +182,7 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
                               ? {
                                   backgroundColor: bg,
                                   color: fg,
-                                  border: "none",
+                                  border: "none", 
                                 }
                               : undefined
                           }
