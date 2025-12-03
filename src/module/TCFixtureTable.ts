@@ -339,7 +339,7 @@ for (const [name, data] of Array.from(partMap.entries()).sort((a, b) => a[0].loc
         }
         i++;
     }
-
+console.log("Generated Sub-Assembly Rows:", rows);
     return rows;
 
 
