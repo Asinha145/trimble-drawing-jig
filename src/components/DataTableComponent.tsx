@@ -23,8 +23,8 @@ export const DataTableComponentVWS: React.FC<DataTablePropsVWS> = ({ Rebar, onSe
         <table>
           <thead>
             <tr>
-              <th>Fixture<br />Position</th>
               <th>Sub-Assembly<br />Reference</th>
+              <th>Fixture<br />Position</th>
             </tr>
           </thead>
 <tbody>
