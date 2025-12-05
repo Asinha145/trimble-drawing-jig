@@ -183,6 +183,7 @@ for (const child of objectIDList) {
 
 const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
     let partNumber: string = customProps?.properties.find((p: any) => p.name.includes("bim2cam:Part Number"))?.value ?? "N/A";
+    let shapeCode: string = customProps?.properties.find((p: any) => p.name.includes("IFC:Rebar:Shape Code"))?.value ?? "N/A";
     if (partNumber.includes("STR")) {
         stringerboundingBox.push({
           xMin: boundingBox[0].boundingBox.min.x*1000,
@@ -221,6 +222,14 @@ let BBZMax: number = boundingBox[0].boundingBox.max.z ?? 0;
   await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber + "\n" + " Fixture position: " + _matchingDatum.label, color:  colour}]);
   }
   else{
+    console.log("Child ID: ", child, "Omitted stringers: ", omittedStringers);
+  if (omittedStringers.includes(child)) {
+    partNumber += " - Omitted Stringer \n Do not place in fixture";
+    colour = { r: 255, g: 0, b: 0, a: 255 };
+    }
+  else if (partNumber.includes("REB") && shapeCode.includes("B")) {
+     partNumber += "\n Remove Bridging Coupler(s)";
+  }
 await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color:  colour}]);
   }
   }
@@ -331,6 +340,7 @@ if (!modelID) {
     const objectData = await API.viewer.getObjectProperties(modelID, [id]);
     const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
     let partNumber: string = customProps?.properties.find((p: any) => p.name.includes("bim2cam:Part Number"))?.value ?? "N/A";
+    let shapeCode: string = customProps?.properties.find((p: any) => p.name.includes("IFC:Rebar:Shape Code"))?.value ?? "N/A";
 
     const boundingBox = await API.viewer.getObjectBoundingBoxes(modelID, [id]);
     let cogX: number = ((boundingBox[0].boundingBox.min.x + boundingBox[0].boundingBox.max.x)/2)*1000;
@@ -346,6 +356,9 @@ if (!modelID) {
   partNumber += " - Omitted Stringer \n Do not place in fixture";
   color = { r: 255, g: 0, b: 0, a: 255 };
     }
+  }
+  else if (partNumber.includes("REB") && shapeCode.includes("B")) {
+     partNumber += "\n Remove Bridging Coupler(s)";
   }
     await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color}]);
 //changing the colours of the parts
