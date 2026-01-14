@@ -434,7 +434,7 @@ export const getDatumSideHWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
 export const getOmittedStringers = async (
   API: WorkspaceAPI.WorkspaceAPI,
   stationTypeArg?: string,   // e.g., "Vertical Weld Station"
-  toleranceMM: number = 1    // X containment tolerance in millimetres
+  toleranceMM: number = 1    // X containment tolerance specified in millimetres
 ) => {
   const modelID = await GetModelID(API);
 
@@ -448,37 +448,38 @@ export const getOmittedStringers = async (
   const toStr = (v: unknown) => (typeof v === "string" ? v : String(v ?? ""));
 
   // 1D overlap: intersects (touching counts as overlap)
-  const overlaps1D = (minA: number, maxA: number, minB: number, maxB: number) =>
-    minA <= maxB && maxA >= minB;
+  const overlaps1D = (minA: number, maxA: number, minB: number, maxB: number, eps = 0) =>
+    minA <= (maxB + eps) && maxA >= (minB - eps);
 
-  // 1D containment with tolerance (weld fully inside stringer along one axis)
-  // Assumes units are millimetres; if metres, pass toleranceMM/1000.
+  // 1D containment with tolerance (weld fully inside stringer along X)
+  // Assumes both arguments are in *model units*; tolerance must match model units.
   const inside1DWithTol = (
     minW: number,
     maxW: number,
     minS: number,
     maxS: number,
-    tol: number
-  ) => minW >= (minS - tol) && maxW <= (maxS + tol);
+    tol: number,
+    eps = 0
+  ) => (minW >= (minS - tol) - eps) && (maxW <= (maxS + tol) + eps);
 
   // Classic AABB overlap on all axes
   const overlapsAABB = (
     w: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } },
-    s: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } }
-  ) =>
-    overlaps1D(w.min.x, w.max.x, s.min.x, s.max.x) &&
-    overlaps1D(w.min.y, w.max.y, s.min.y, s.max.y) &&
-    overlaps1D(w.min.z, w.max.z, s.min.z, s.max.z);
-
-  // Station-aware overlap: X must be fully contained (with tolerance); Y/Z may overlap
-  const overlapsAABB_XContainedTol = (
-    w: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } },
     s: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } },
-    tol: number
+    eps = 0
   ) =>
-    inside1DWithTol(w.min.x, w.max.x, s.min.x, s.max.x, tol) &&
-    overlaps1D(w.min.y, w.max.y, s.min.y, s.max.y) &&
-    overlaps1D(w.min.z, w.max.z, s.min.z, s.max.z);
+    overlaps1D(w.min.x, w.max.x, s.min.x, s.max.x, eps) &&
+    overlaps1D(w.min.y, w.max.y, s.min.y, s.max.y, eps) &&
+    overlaps1D(w.min.z, w.max.z, s.min.z, s.max.z, eps);
+
+  // YZ-only overlap (touching counts)
+  const overlapsYZ = (
+    w: { min: { y: number; z: number }; max: { y: number; z: number } },
+    s: { min: { y: number; z: number }; max: { y: number; z: number } },
+    eps = 0
+  ) =>
+    overlaps1D(w.min.y, w.max.y, s.min.y, s.max.y, eps) &&
+    overlaps1D(w.min.z, w.max.z, s.min.z, s.max.z, eps);
 
   // --- Fetch all objects once ----------------------------------------------
 
@@ -490,13 +491,15 @@ export const getOmittedStringers = async (
   type PropsEntry = {
     id: number;
     properties?: any[];
-    // add other fields if your viewer includes them
   };
+
+  type AABB = {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  };
+
   const propsEntryById = new Map<number, PropsEntry | null>();
-  const bboxById = new Map<
-    number,
-    { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } } | null
-  >();
+  const bboxById = new Map<number, AABB | null>();
 
   const getPropsEntry = async (id: number): Promise<PropsEntry | null> => {
     if (propsEntryById.has(id)) return propsEntryById.get(id)!;
@@ -506,7 +509,7 @@ export const getOmittedStringers = async (
     return entry;
   };
 
-  const getAABB = async (id: number) => {
+  const getAABB = async (id: number): Promise<AABB | null> => {
     if (bboxById.has(id)) return bboxById.get(id)!;
     const bbArr = await API.viewer.getObjectBoundingBoxes(modelID, [id]);
     const bb = bbArr?.[0]?.boundingBox ?? null;
@@ -554,7 +557,7 @@ export const getOmittedStringers = async (
         const clearanceVal = swProps[clearanceIdx]?.value ?? "";
         if (toStr(clearanceVal).includes("EXCLUDED")) {
           excludedWeldIds.push(obj.id);
-          continue; // weld won't be a stringer; skip STR detection
+          continue; // don't evaluate STR for this object
         }
       }
     }
@@ -571,41 +574,235 @@ export const getOmittedStringers = async (
     }
   }
 
-  // Prefetch bbox for candidate stringers
+  // Prefetch bbox for candidate stringers & excluded welds
   await Promise.all(candidateStringerIds.map(id => getAABB(id)));
+  await Promise.all(excludedWeldIds.map(id => getAABB(id)));
 
-  // --- Clash test (station-aware, with tolerance for Vertical) --------------
+  // --- Convert tolerance to model units ------------------------------------
+
+  // Heuristic: if typical extents are "building scale" (0.1–50), assume meters; else millimetres.
+  const inferLengthUnitScale = (): number => {
+    const sampleIds = candidateStringerIds.slice(0, 5);
+    let avgExtent = 0;
+    let count = 0;
+    for (const id of sampleIds) {
+      const bb = bboxById.get(id);
+      if (!bb) continue;
+      const ex = Math.max(
+        Math.abs(bb.max.x - bb.min.x),
+        Math.abs(bb.max.y - bb.min.y),
+        Math.abs(bb.max.z - bb.min.z)
+      );
+      avgExtent += ex;
+      count++;
+    }
+    avgExtent = count ? (avgExtent / count) : 0;
+    // If extents look like meters (e.g., 0.1–50), use m; else assume mm.
+    const isMeters = avgExtent > 0 && avgExtent < 50;
+    return isMeters ? 1 / 1000 /* mm -> m */ : 1; /* mm -> mm */
+  };
+
+  const unitScale = inferLengthUnitScale();
+  const tol = toleranceMM * unitScale;
+  const EPS = tol / 1000; // small epsilon relative to tol to guard floating-point jitter
+
+  // --- Clash test (station-aware, ANY excluded weld qualifies) --------------
 
   const omittedStringerProps: number[] = [];
   const seenStringer = new Set<number>();
 
-  for (const weldId of excludedWeldIds) {
-    const weldAABB = await getAABB(weldId);
-    if (!weldAABB) continue;
+  // Diagnostics bucket to aid troubleshooting when behavior seems off
+  type DiagnosticEntry = {
+    stationType: string;
+    unitScale: number;
+    toleranceMM: number;
+    toleranceModelUnits: number;
+    stringerId: number;
+    strAABB?: AABB | null;
+    omitted: boolean;
+    reason?: string;
+    weldsChecked: Array<{
+      weldId: number;
+      weldAABB?: AABB | null;
+      yzOverlap: boolean;
+      xContained: boolean;
+      details: {
+        strX: [number, number];
+        weldX: [number, number];
+        strY: [number, number];
+        weldY: [number, number];
+        strZ: [number, number];
+        weldZ: [number, number];
+        tol: number;
+        eps: number;
+      };
+    }>;
+  };
 
+  const diagnostics: DiagnosticEntry[] = [];
+
+  if (isVerticalStation) {
+    // Vertical: ANY excluded weld that overlaps YZ AND is fully contained in X (with tol) => omit
     for (const strId of candidateStringerIds) {
       if (seenStringer.has(strId)) continue;
 
       const strAABB = await getAABB(strId);
-      if (!strAABB) continue;
+      const diag: DiagnosticEntry = {
+        stationType,
+        unitScale,
+        toleranceMM,
+        toleranceModelUnits: tol,
+        stringerId: strId,
+        strAABB,
+        omitted: false,
+        reason: undefined,
+        weldsChecked: [],
+      };
 
-      const isClash = isVerticalStation
-        ? overlapsAABB_XContainedTol(weldAABB, strAABB, toleranceMM)
-        : overlapsAABB(weldAABB, strAABB);
+      if (!strAABB) {
+        diag.reason = "Stringer AABB unavailable";
+        diagnostics.push(diag);
+        continue;
+      }
 
-      if (isClash) {
+      let shouldOmit = false;
+
+      for (const weldId of excludedWeldIds) {
+        const weldAABB = await getAABB(weldId);
+        const yzOverlap = !!(weldAABB && overlapsYZ(
+          { min: { y: weldAABB.min.y, z: weldAABB.min.z }, max: { y: weldAABB.max.y, z: weldAABB.max.z } },
+          { min: { y: strAABB.min.y, z: strAABB.min.z }, max: { y: strAABB.max.y, z: strAABB.max.z } },
+          EPS
+        ));
+
+        const xContained = !!(weldAABB && inside1DWithTol(
+          weldAABB.min.x, weldAABB.max.x,
+          strAABB.min.x, strAABB.max.x,
+          tol,
+          EPS
+        ));
+
+        diag.weldsChecked.push({
+          weldId,
+          weldAABB,
+          yzOverlap,
+          xContained,
+          details: {
+            strX: [strAABB.min.x, strAABB.max.x],
+            weldX: weldAABB ? [weldAABB.min.x, weldAABB.max.x] : [NaN, NaN],
+            strY: [strAABB.min.y, strAABB.max.y],
+            weldY: weldAABB ? [weldAABB.min.y, weldAABB.max.y] : [NaN, NaN],
+            strZ: [strAABB.min.z, strAABB.max.z],
+            weldZ: weldAABB ? [weldAABB.min.z, weldAABB.max.z] : [NaN, NaN],
+            tol,
+            eps: EPS,
+          },
+        });
+
+        if (yzOverlap && xContained) {
+          shouldOmit = true;
+          diag.omitted = true;
+          diag.reason = "Found excluded weld with YZ overlap and X fully contained (with tolerance).";
+          break; // ANY weld qualifies
+        }
+      }
+
+      if (shouldOmit) {
         const strPropsEntry = await getPropsEntry(strId);
         if (strPropsEntry) {
           omittedStringerProps.push(strPropsEntry.id);
           seenStringer.add(strId);
         }
+      } else if (!diag.reason) {
+        diag.reason = "No excluded weld met both YZ overlap and X containment conditions.";
       }
-    }
-   }
 
-  console.log("Omitted Stringers (properties):", omittedStringerProps);
+      diagnostics.push(diag);
+    }
+  } else {
+    // Non-vertical: classic AABB overlap; ANY excluded weld overlap => omit
+    for (const strId of candidateStringerIds) {
+      if (seenStringer.has(strId)) continue;
+
+      const strAABB = await getAABB(strId);
+      const diag: DiagnosticEntry = {
+        stationType,
+        unitScale,
+        toleranceMM,
+        toleranceModelUnits: tol,
+        stringerId: strId,
+        strAABB,
+        omitted: false,
+        reason: undefined,
+        weldsChecked: [],
+      };
+
+      if (!strAABB) {
+        diag.reason = "Stringer AABB unavailable";
+        diagnostics.push(diag);
+        continue;
+      }
+
+      let shouldOmit = false;
+
+      for (const weldId of excludedWeldIds) {
+        const weldAABB = await getAABB(weldId);
+
+        const overlaps = !!(weldAABB && overlapsAABB(weldAABB, strAABB, EPS));
+
+        diag.weldsChecked.push({
+          weldId,
+          weldAABB,
+          yzOverlap: overlaps, // For non-vertical, using full AABB; store in this key for convenience
+          xContained: false,   // Not used in non-vertical mode
+          details: {
+            strX: [strAABB.min.x, strAABB.max.x],
+            weldX: weldAABB ? [weldAABB.min.x, weldAABB.max.x] : [NaN, NaN],
+            strY: [strAABB.min.y, strAABB.max.y],
+            weldY: weldAABB ? [weldAABB.min.y, weldAABB.max.y] : [NaN, NaN],
+            strZ: [strAABB.min.z, strAABB.max.z],
+            weldZ: weldAABB ? [weldAABB.min.z, weldAABB.max.z] : [NaN, NaN],
+            tol,
+            eps: EPS,
+          },
+        });
+
+        if (overlaps) {
+          shouldOmit = true;
+          diag.omitted = true;
+          diag.reason = "Found excluded weld with classic AABB overlap.";
+          break; // ANY weld qualifies
+        }
+      }
+
+      if (shouldOmit) {
+        const strPropsEntry = await getPropsEntry(strId);
+        if (strPropsEntry) {
+          omittedStringerProps.push(strPropsEntry.id);
+          seenStringer.add(strId);
+        }
+      } else if (!diag.reason) {
+        diag.reason = "No excluded weld overlapped the stringer (classic AABB).";
+      }
+
+      diagnostics.push(diag);
+    }
+  }
+
+  // --- Diagnostics logging --------------------------------------------------
+
+  // Summary
+  console.log("getOmittedStringers → stationType:", stationType, "| unitScale:", unitScale, "| toleranceMM:", toleranceMM, "| tol(model units):", tol);
+  console.log("getOmittedStringers → candidateStringerIds:", candidateStringerIds.length, "| excludedWeldIds:", excludedWeldIds.length);
+  console.log("getOmittedStringers → omittedStringerProps:", omittedStringerProps);
+
+  // Detailed per-stringer diagnostics (JSON for easy inspection)
+  console.log("getOmittedStringers diagnostics:", JSON.stringify(diagnostics, null, 2));
+
   return omittedStringerProps;
-}
+};
+
+
 
 type RGBA = { r: number; g: number; b: number; a: number };
 type ColourByObjectId = { [key: number]: RGBA };

@@ -37,7 +37,7 @@ export const Extract_Rebar = (
     const partNumber = SOLIDWORKSCUSTOMPROPERTIES[partNumberIndex as number]?.value ?? "";
         // Ensure partNumber is a string before calling includes
         const partNumberStr = typeof partNumber === "string" ? partNumber : String(partNumber);
-        if (partNumberStr.includes("RTW")) {
+        if (partNumberStr.includes("RTW") || partNumberStr.includes("RT2")) {
             rebarObjects.push(object);
         }
     }

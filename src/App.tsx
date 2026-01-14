@@ -183,6 +183,7 @@ for (const child of objectIDList) {
 
 const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
     let partNumber: string = customProps?.properties.find((p: any) => p.name.includes("bim2cam:Part Number"))?.value ?? "N/A";
+    let shapeCode: string = customProps?.properties.find((p: any) => p.name.includes("IFC:Rebar:Shape Code"))?.value ?? "N/A";
     if (partNumber.includes("STR")) {
         stringerboundingBox.push({
           xMin: boundingBox[0].boundingBox.min.x*1000,
@@ -195,7 +196,7 @@ const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLI
     }
     yComponent = cogY;
         let colour = { r: 255, g: 0, b: 0, a: 255 }
-    if (partNumber.includes("RTW")) {
+    if (partNumber.includes("RTW") || partNumber.includes("RT2")) {
       cogX = boundingBox[0].boundingBox.max.x*1000;
       colour = { r: 50, g: 50, b: 50, a: 255 }
     }
@@ -217,10 +218,18 @@ let BBZMax: number = boundingBox[0].boundingBox.max.z ?? 0;
     let endPosition: any = { positionX: cogX, positionY: cogY+100, positionZ: cogZ };
 
     
-  if (partNumber.includes("RTW")) {
+  if (partNumber.includes("RTW") || partNumber.includes("RT2")) {
   await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber + "\n" + " Fixture position: " + _matchingDatum.label, color:  colour}]);
   }
   else{
+    console.log("Child ID: ", child, "Omitted stringers: ", omittedStringers);
+  if (omittedStringers.includes(child)) {
+    partNumber += " - Omitted Stringer \n Do not place in fixture";
+    colour = { r: 255, g: 0, b: 0, a: 255 };
+    }
+  else if (partNumber.includes("REB") && shapeCode.includes("B")) {
+     partNumber += "\n Remove Bridging Coupler(s)";
+  }
 await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color:  colour}]);
   }
   }
@@ -331,6 +340,7 @@ if (!modelID) {
     const objectData = await API.viewer.getObjectProperties(modelID, [id]);
     const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
     let partNumber: string = customProps?.properties.find((p: any) => p.name.includes("bim2cam:Part Number"))?.value ?? "N/A";
+    let shapeCode: string = customProps?.properties.find((p: any) => p.name.includes("IFC:Rebar:Shape Code"))?.value ?? "N/A";
 
     const boundingBox = await API.viewer.getObjectBoundingBoxes(modelID, [id]);
     let cogX: number = ((boundingBox[0].boundingBox.min.x + boundingBox[0].boundingBox.max.x)/2)*1000;
@@ -347,6 +357,9 @@ if (!modelID) {
   color = { r: 255, g: 0, b: 0, a: 255 };
     }
   }
+  else if (partNumber.includes("REB") && shapeCode.includes("B")) {
+     partNumber += "\n Remove Bridging Coupler(s)";
+  }
     await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color}]);
 //changing the colours of the parts
 
@@ -358,7 +371,7 @@ if (!modelID) {
     if (partNumber.includes("REB") && (datumSide.includes("EAST") || datumSide.includes("WEST"))) {
 //get bounding box of rebar, east uses max, west uses min
       let startX: number = datumSide === "EAST" ? boundingBox[0].boundingBox.max.x*1000 : boundingBox[0].boundingBox.min.x*1000;
-      let endX: number = datumSide === "EAST" ? 13951 : -623; //fixed datum but based off origin position. Needs updating if origin changes
+      let endX: number = datumSide === "EAST" ? 14040.5 : -565.75; //fixed datum but based off origin position. Needs updating if origin changes
       let color = { r: 255, g: 0, b: 0, a: 255 };
        await API.markup.addMeasurementMarkups([
             {
