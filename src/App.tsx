@@ -196,7 +196,7 @@ const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLI
     }
     yComponent = cogY;
         let colour = { r: 255, g: 0, b: 0, a: 255 }
-    if (partNumber.includes("RTW")) {
+    if (partNumber.includes("RTW") || partNumber.includes("RT2")) {
       cogX = boundingBox[0].boundingBox.max.x*1000;
       colour = { r: 50, g: 50, b: 50, a: 255 }
     }
@@ -218,7 +218,7 @@ let BBZMax: number = boundingBox[0].boundingBox.max.z ?? 0;
     let endPosition: any = { positionX: cogX, positionY: cogY+100, positionZ: cogZ };
 
     
-  if (partNumber.includes("RTW")) {
+  if (partNumber.includes("RTW") || partNumber.includes("RT2")) {
   await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber + "\n" + " Fixture position: " + _matchingDatum.label, color:  colour}]);
   }
   else{
@@ -371,7 +371,7 @@ if (!modelID) {
     if (partNumber.includes("REB") && (datumSide.includes("EAST") || datumSide.includes("WEST"))) {
 //get bounding box of rebar, east uses max, west uses min
       let startX: number = datumSide === "EAST" ? boundingBox[0].boundingBox.max.x*1000 : boundingBox[0].boundingBox.min.x*1000;
-      let endX: number = datumSide === "EAST" ? 13951 : -623; //fixed datum but based off origin position. Needs updating if origin changes
+      let endX: number = datumSide === "EAST" ? 14040.5 : -565.75; //fixed datum but based off origin position. Needs updating if origin changes
       let color = { r: 255, g: 0, b: 0, a: 255 };
        await API.markup.addMeasurementMarkups([
             {
