@@ -208,8 +208,8 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
                           }}
                         >
                           {/* e.g., "3  @16 mm" or "3  @16mm" depending on col3 */}
-                          {String(row.col2)}
-                          {row.col3 ? `@${row.col3}` : ""}
+{String(row.col2)}
+{row.col3 && String(row.col1).includes("REB") ? `@${row.col3}` : ""}
                         </button>
                       </div>
                     ) : (
