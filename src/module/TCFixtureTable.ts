@@ -49,7 +49,7 @@ export const GetRebarsVWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
     const objectListArray = await API.viewer.getObjects();
     const objectList = objectListArray[0].objects;
     rebarItems = [];
-
+console.log("Object List:", objectList);
 
     for (let object of objectList) {
         let objectPropertyArray = await API.viewer.getObjectProperties(modelID, [object.id]);
@@ -61,22 +61,21 @@ export const GetRebarsVWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
             const objectName = child.name;
             if (objectName.includes("REB")) {
                 rebarPart = child; //only one rebar in the RTW assumed
+                console.log("Found REB child with ID", child.id, "under object ID", object.id);
             }
         }
-        if (rebarPart?.id) {
+        
+        if (rebarPart?.id != null) {
+          console.log("RebarPart ID", [rebarPart.id]);
             rebarProperties = await API.viewer.getObjectProperties(modelID, [rebarPart.id]);
+            console.log("Rebar Properties for object ID", rebarPart.id, ":", rebarProperties);
         }
-
-
-
-
         // Extract_Rebar returns an array of rebar object properties for the given object
         const rebars = Extract_Rebar(objectPropertyArray);
 
         if (rebars && rebars.length > 0) {
             rebars.forEach(item => {
                 if (!rebarItems.includes(item)) {
-
                     //getting bounding box of the RTW doesn't work in the case of couplers. need to get rebar
                     let cogX: number = ((boundingBox[0].boundingBox.min.x + boundingBox[0].boundingBox.max.x) / 2) * 1000;
                     let cogY: number = ((boundingBox[0].boundingBox.min.y + boundingBox[0].boundingBox.max.y) / 2) * 1000;
@@ -792,12 +791,12 @@ export const getOmittedStringers = async (
   // --- Diagnostics logging --------------------------------------------------
 
   // Summary
-  console.log("getOmittedStringers → stationType:", stationType, "| unitScale:", unitScale, "| toleranceMM:", toleranceMM, "| tol(model units):", tol);
-  console.log("getOmittedStringers → candidateStringerIds:", candidateStringerIds.length, "| excludedWeldIds:", excludedWeldIds.length);
-  console.log("getOmittedStringers → omittedStringerProps:", omittedStringerProps);
+  //console.log("getOmittedStringers → stationType:", stationType, "| unitScale:", unitScale, "| toleranceMM:", toleranceMM, "| tol(model units):", tol);
+  //console.log("getOmittedStringers → candidateStringerIds:", candidateStringerIds.length, "| excludedWeldIds:", excludedWeldIds.length);
+ // console.log("getOmittedStringers → omittedStringerProps:", omittedStringerProps);
 
   // Detailed per-stringer diagnostics (JSON for easy inspection)
-  console.log("getOmittedStringers diagnostics:", JSON.stringify(diagnostics, null, 2));
+  //console.log("getOmittedStringers diagnostics:", JSON.stringify(diagnostics, null, 2));
 
   return omittedStringerProps;
 };
