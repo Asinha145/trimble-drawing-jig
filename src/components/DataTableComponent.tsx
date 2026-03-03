@@ -32,7 +32,24 @@ export const DataTableComponentVWS: React.FC<DataTablePropsVWS> = ({ Rebar, onSe
     .sort((a, b) => a.datumItem.label - b.datumItem.label)
     .map((item) => (
       <tr key={item.id}>
-        <td>{getPropValue(item.RTWItem, "bim2cam:Part Number").replace('RTW-', '').replace('RT2-', '')}</td>
+        <td className="fixture-cell">
+  {(() => {
+    const partNumber = getPropValue(item.RTWItem, "bim2cam:Part Number")
+      .replace('RTW-', '')
+      .replace('RT2-', '');
+
+    const bardiameter = getPropValue(item.rebarItem, "bim2cam:Rebar:Size") || "N/A";
+    const barMark = getPropValue(item.rebarItem, "bim2cam:Part Number") || "N/A";
+    const barLength = getPropValue(item.rebarItem, "bim2cam:Rebar:Length") || "N/A";
+const bottom = `${barMark}, L: ${barLength} mm, Ø${bardiameter}`;
+    return (
+      <>
+        <div className="fixture-top">{partNumber}</div>
+        <div className="fixture-bottom">{bottom}</div>
+      </>
+    );
+  })()}
+</td>
         <td>
           <button className="table-button" onClick={() => onSelect(item.RTWItem.id, item.datumItem)}>{item.datumItem.label}</button>
         </td>
@@ -191,8 +208,8 @@ export const DataTableComponentHWS: React.FC<DataTablePropsHWS> = ({ partRows, o
                           }}
                         >
                           {/* e.g., "3  @16 mm" or "3  @16mm" depending on col3 */}
-                          {String(row.col2)}
-                          {row.col3 ? `@${row.col3}` : ""}
+{String(row.col2)}
+{row.col3 && String(row.col1).includes("REB") ? `@${row.col3}` : ""}
                         </button>
                       </div>
                     ) : (

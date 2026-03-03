@@ -18,17 +18,18 @@ th {
 
 .table-button {
   display: inline-block;
-  width: 120px;              /* Fixed width */
-  height: 40px;              /* Fixed height */
-  background-color: #0078d4; /* Primary color */
-  color: #fff;               /* Text color */
-  border: none;              /* Remove default border */
-  border-radius: 6px;        /* Rounded corners */
-  font-size: 14px;           /* Text size */
+  width: 120px;              
+  height: 40px;              
+  padding: 8px 1px;         /* top/bottom 8px, left/right 12px */
+  background-color: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
-  line-height: 20px;         /* Vertically center text */
+  line-height: 20px;         
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
@@ -76,4 +77,22 @@ th {
 .child-table td {
   border: 1px solid #ccc;
   padding: 6px;
+}
+
+.fixture-cell {
+  padding: 0;
+}
+
+.fixture-top {
+  background-color: #afe9fd;
+  padding: 6px;
+  border-bottom: 1px solid #ccc;
+  font-weight: 500;
+  text-align: center;
+}
+
+.fixture-bottom {
+  padding: 6px;
+  display: flex;
+  justify-content: center;
 }

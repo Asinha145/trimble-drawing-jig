@@ -49,7 +49,7 @@ export const GetRebarsVWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
     const objectListArray = await API.viewer.getObjects();
     const objectList = objectListArray[0].objects;
     rebarItems = [];
-
+console.log("Object List:", objectList);
 
     for (let object of objectList) {
         let objectPropertyArray = await API.viewer.getObjectProperties(modelID, [object.id]);
@@ -61,22 +61,21 @@ export const GetRebarsVWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
             const objectName = child.name;
             if (objectName.includes("REB")) {
                 rebarPart = child; //only one rebar in the RTW assumed
+                console.log("Found REB child with ID", child.id, "under object ID", object.id);
             }
         }
-        if (rebarPart?.id) {
+        
+        if (rebarPart?.id != null) {
+          console.log("RebarPart ID", [rebarPart.id]);
             rebarProperties = await API.viewer.getObjectProperties(modelID, [rebarPart.id]);
+            console.log("Rebar Properties for object ID", rebarPart.id, ":", rebarProperties);
         }
-
-
-
-
         // Extract_Rebar returns an array of rebar object properties for the given object
         const rebars = Extract_Rebar(objectPropertyArray);
 
         if (rebars && rebars.length > 0) {
             rebars.forEach(item => {
                 if (!rebarItems.includes(item)) {
-
                     //getting bounding box of the RTW doesn't work in the case of couplers. need to get rebar
                     let cogX: number = ((boundingBox[0].boundingBox.min.x + boundingBox[0].boundingBox.max.x) / 2) * 1000;
                     let cogY: number = ((boundingBox[0].boundingBox.min.y + boundingBox[0].boundingBox.max.y) / 2) * 1000;
@@ -165,7 +164,6 @@ export const getPlatesHWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
 
 }
 type ColourInput = ColourByObjectId | Map<number, RGBA>;
-
 export const getSubAssembliesHWS = async (API: WorkspaceAPI.WorkspaceAPI, spacerColours: ColourInput) => {
 
     const modelID = await GetModelID(API);
@@ -230,8 +228,8 @@ export const getSubAssembliesHWS = async (API: WorkspaceAPI.WorkspaceAPI, spacer
         }
     }
 
-    // Output rows now include an optional col3 for Rebar Diameter
-    type Row = { col1: string; col2: string | number; col3?: string; id: number[]; color?: RGBA };
+    // Output rows now include an optional col3 for combined Rebar Diameter + Length
+    type Row = { col1: string; col2: string | number; col3?: string; id: number[]; colour?: RGBA };
     const rows: Row[] = [];
     let i: number = 0;
 
@@ -254,8 +252,8 @@ export const getSubAssembliesHWS = async (API: WorkspaceAPI.WorkspaceAPI, spacer
             id: [9999999999]
         });
 
-        // Map to store part name -> { qty, ids, rebarDia }
-        const partMap = new Map<string, { qty: number; ids: number[]; rebarDia?: string }>();
+        // Map to store part name -> { qty, ids, rebarDia, rebarLength }
+        const partMap = new Map<string, { qty: number; ids: number[]; rebarDia?: string; rebarLength?: string }>();
 
         for (const stringerObj of assembly.subAssemblyStringerObjects) {
             const candidate = Array.isArray(stringerObj) ? stringerObj[0] : stringerObj;
@@ -274,17 +272,24 @@ export const getSubAssembliesHWS = async (API: WorkspaceAPI.WorkspaceAPI, spacer
                     ? (SOLIDWORKSCUSTOMPROPERTIES[partNumberIndex as number]?.value ?? "")
                     : "";
 
-            // ✅ Correctly read Rebar diameter from "bim2cam:Rebar:Size"
+            // Read Rebar diameter from "bim2cam:Rebar:Size"
             const rebarDiaIndex = GetIFCProperty("bim2cam:Rebar:Size", SOLIDWORKSCUSTOMPROPERTIES);
             const rebarDia =
                 rebarDiaIndex != null
                     ? (SOLIDWORKSCUSTOMPROPERTIES[rebarDiaIndex as number]?.value ?? "")
                     : "";
 
+            // Read Rebar length from "bim2cam:Rebar:Length"
+            const rebarLengthIndex = GetIFCProperty("bim2cam:Rebar:Length", SOLIDWORKSCUSTOMPROPERTIES);
+            const rebarLength =
+                rebarLengthIndex != null
+                    ? (SOLIDWORKSCUSTOMPROPERTIES[rebarLengthIndex as number]?.value ?? "")
+                    : "";
+
             if (partNumber) {
                 const key = typeof partNumber === "string" ? partNumber : String(partNumber);
                 if (!partMap.has(key)) {
-                    partMap.set(key, { qty: 0, ids: [], rebarDia: "" });
+                    partMap.set(key, { qty: 0, ids: [], rebarDia: "", rebarLength: "" });
                 }
                 const entry = partMap.get(key)!;
                 entry.qty += 1;
@@ -303,31 +308,47 @@ export const getSubAssembliesHWS = async (API: WorkspaceAPI.WorkspaceAPI, spacer
                         entry.rebarDia = `${entry.rebarDia}/${diaStr}`;
                     }
                 }
+
+                // Attach rebar length (if present) to this part's entry.
+                const lenStr = typeof rebarLength === "string" ? rebarLength : String(rebarLength);
+                if (lenStr) {
+                    if (!entry.rebarLength) {
+                        entry.rebarLength = lenStr;
+                    } else if (!entry.rebarLength.split("/").includes(lenStr)) {
+                        entry.rebarLength = `${entry.rebarLength}/${lenStr}`;
+                    }
+                }
             }
         }
 
-        // Push rows for each unique part
+        // Push rows for each unique part, formatting col3 as "ØXX, L: YY"
+        for (const [name, data] of Array.from(partMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
+            // Find the first matching colour for any id in this row
+            let colour: RGBA | undefined;
+            for (const id of data.ids) {
+                const c =
+                    spacerColours instanceof Map
+                        ? spacerColours.get(id)
+                        : (spacerColours as { [key: number]: RGBA })[id];
+                if (c) {
+                    colour = c;
+                    break;
+                }
+            }
 
-for (const [name, data] of Array.from(partMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
-  // Find the first matching colour for any id in this row
-  let colour: { r: number; g: number; b: number; a: number } | undefined;
-  for (const id of data.ids) {
-    const c =
-      spacerColours instanceof Map
-        ? spacerColours.get(id)
-        : (spacerColours as { [key: number]: { r: number; g: number; b: number; a: number } })[id];
-    if (c) { colour = c; break; }
-  }
+            // Format combined rebar info string
+            const diameterText = data.rebarDia ? `Ø${data.rebarDia}` : "N/A";
+            const lengthText = data.rebarLength ? `L: ${data.rebarLength}` : "";
+            const combinedRebarInfo = lengthText ? `${diameterText}, ${lengthText}` : diameterText;
 
-  rows.push({
-    col1: name,
-    col2: data.qty,
-    col3: data.rebarDia ?? "",
-    id: data.ids,
-    ...(colour ? { colour } : {}) // only include colour when a match was found
-  });
-}
-
+            rows.push({
+                col1: name,
+                col2: data.qty,
+                col3: combinedRebarInfo,
+                id: data.ids,
+                ...(colour ? { colour } : {})
+            });
+        }
 
         if (i < 1) {
             rows.push({
@@ -339,11 +360,10 @@ for (const [name, data] of Array.from(partMap.entries()).sort((a, b) => a[0].loc
         }
         i++;
     }
-console.log("Generated Sub-Assembly Rows:", rows);
+
+    console.log("Generated Sub-Assembly Rows:", rows);
     return rows;
-
-
-}
+};
 
 
 export const getStationConfigHWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
@@ -792,12 +812,12 @@ export const getOmittedStringers = async (
   // --- Diagnostics logging --------------------------------------------------
 
   // Summary
-  console.log("getOmittedStringers → stationType:", stationType, "| unitScale:", unitScale, "| toleranceMM:", toleranceMM, "| tol(model units):", tol);
-  console.log("getOmittedStringers → candidateStringerIds:", candidateStringerIds.length, "| excludedWeldIds:", excludedWeldIds.length);
-  console.log("getOmittedStringers → omittedStringerProps:", omittedStringerProps);
+  //console.log("getOmittedStringers → stationType:", stationType, "| unitScale:", unitScale, "| toleranceMM:", toleranceMM, "| tol(model units):", tol);
+  //console.log("getOmittedStringers → candidateStringerIds:", candidateStringerIds.length, "| excludedWeldIds:", excludedWeldIds.length);
+ // console.log("getOmittedStringers → omittedStringerProps:", omittedStringerProps);
 
   // Detailed per-stringer diagnostics (JSON for easy inspection)
-  console.log("getOmittedStringers diagnostics:", JSON.stringify(diagnostics, null, 2));
+  //console.log("getOmittedStringers diagnostics:", JSON.stringify(diagnostics, null, 2));
 
   return omittedStringerProps;
 };

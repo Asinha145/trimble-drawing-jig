@@ -29,12 +29,12 @@ useEffect(() => {
   setTimeout(async function () {
     const id = await GetModelID(API);
     setModelID(id);
-
+const sliceIndex = modelName[5] === "-" ? 5 : 6;
     if (modelName.includes("VWS")) {
       await API.extension.requestFocus();
-      setModelName(modelName.slice(0, 5));
+      setModelName(modelName.slice(0, 6));
       setStation_type("Vertical Weld Station");
-
+setModelName(modelName.slice(0, sliceIndex));
       const getRebars = await GetRebarsVWS(API);
       setSubAssemblyList(getRebars);
 
@@ -42,7 +42,8 @@ useEffect(() => {
     }
     else if (modelName.includes("HWS")) {
       await API.extension.requestFocus();
-      setModelName(modelName.slice(0, 5));
+      
+setModelName(modelName.slice(0, sliceIndex));
       setStation_type("Horizontal Weld Station");
 
       // Preload other HWS data in parallel (optional, faster)
