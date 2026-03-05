@@ -372,7 +372,7 @@ if (!modelID) {
     if (partNumber.includes("REB") && (datumSide.includes("EAST") || datumSide.includes("WEST"))) {
 //get bounding box of rebar, east uses max, west uses min
       let startX: number = datumSide === "EAST" ? boundingBox[0].boundingBox.max.x*1000 : boundingBox[0].boundingBox.min.x*1000;
-      let endX: number = datumSide === "EAST" ? 14040.5 : -565.75; //fixed datum but based off origin position. Needs updating if origin changes
+      let endX: number = datumSide === "EAST" ? 14034 : -560.5; //fixed datum but based off origin position. Needs updating if origin changes
       let color = { r: 255, g: 0, b: 0, a: 255 };
        await API.markup.addMeasurementMarkups([
             {
