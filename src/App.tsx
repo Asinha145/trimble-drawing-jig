@@ -56,7 +56,7 @@ setModelName(modelName.slice(0, sliceIndex));
       setStation_Config(stationConfig);
       setPlateList(plates);
       setDatumSide(datumSide);
-      setOmittedStringers(omitted);
+      setOmittedStringers(omitted); 
 
       // Get colours, then use the local 'colours' variable (not the state yet)
       const colours = await getStringerColours(API);
@@ -177,7 +177,7 @@ let yComponent: number = 0;
 for (const child of objectIDList) {
     // 3️⃣ Get properties for annotation
     const objectData = await API.viewer.getObjectProperties(modelID, [child]);
-    const boundingBox = await API.viewer.getObjectBoundingBoxes(modelID, [child]);
+    const boundingBox = await API.viewer.getObjectBoundingBoxes(modelID, [child]); 
     let cogX: number = ((boundingBox[0].boundingBox.min.x + boundingBox[0].boundingBox.max.x)/2)*1000;
     let cogY: number = ((boundingBox[0].boundingBox.min.y + boundingBox[0].boundingBox.max.y)/2)*1000;
     let cogZ: number = ((boundingBox[0].boundingBox.min.z + boundingBox[0].boundingBox.max.z)/2)*1000;
@@ -201,7 +201,7 @@ const customProps = objectData[0]?.properties?.find((p: any) => p.name === "SOLI
       cogX = boundingBox[0].boundingBox.max.x*1000;
       colour = { r: 50, g: 50, b: 50, a: 255 }
     }
-    else if (partNumber.includes("REB")) {
+    else if (partNumber.includes("REB") || partNumber.includes("RB2")) {
  cogX = boundingBox[0].boundingBox.min.x*1000;
     }
 
@@ -228,7 +228,7 @@ let BBZMax: number = boundingBox[0].boundingBox.max.z ?? 0;
     partNumber += " - Omitted Stringer \n Do not place in fixture";
     colour = { r: 255, g: 0, b: 0, a: 255 };
     }
-  else if (partNumber.includes("REB") && shapeCode.includes("B")) {
+  else if ((partNumber.includes("REB") || partNumber.includes("RB2")) && shapeCode.includes("B")) {
      partNumber += "\n Remove Bridging Coupler(s)";
   }
 await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color:  colour}]);
@@ -358,7 +358,7 @@ if (!modelID) {
   color = { r: 255, g: 0, b: 0, a: 255 };
     }
   }
-  else if (partNumber.includes("REB") && shapeCode.includes("B")) {
+  else if ((partNumber.includes("REB") || partNumber.includes("RB2")) && shapeCode.includes("B")) {
      partNumber += "\n Remove Bridging Coupler(s)";
   }
     await API.markup.addTextMarkup([{ start: startPosition, end: endPosition, text: partNumber, color}]);
@@ -369,7 +369,7 @@ if (!modelID) {
 
   //Add dimension between datum and plate sub-assembly
 
-    if (partNumber.includes("REB") && (datumSide.includes("EAST") || datumSide.includes("WEST"))) {
+    if ((partNumber.includes("REB") || partNumber.includes("RB2")) && (datumSide.includes("EAST") || datumSide.includes("WEST"))) {
 //get bounding box of rebar, east uses max, west uses min
       let startX: number = datumSide === "EAST" ? boundingBox[0].boundingBox.max.x*1000 : boundingBox[0].boundingBox.min.x*1000;
       let endX: number = datumSide === "EAST" ? 14034 : -560.5; //fixed datum but based off origin position. Needs updating if origin changes

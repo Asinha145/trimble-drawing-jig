@@ -49,8 +49,6 @@ export const GetRebarsVWS = async (API: WorkspaceAPI.WorkspaceAPI) => {
     const objectListArray = await API.viewer.getObjects();
     const objectList = objectListArray[0].objects;
     rebarItems = [];
-console.log("Object List:", objectList);
-
     for (let object of objectList) {
         let objectPropertyArray = await API.viewer.getObjectProperties(modelID, [object.id]);
         const boundingBox = await API.viewer.getObjectBoundingBoxes(modelID, [object.id]);
@@ -59,16 +57,12 @@ console.log("Object List:", objectList);
         let rebarProperties: any;
         for (const child of heirarchyChildren) {
             const objectName = child.name;
-            if (objectName.includes("REB")) {
+            if (objectName.includes("REB") || objectName.includes("RB2")) {
                 rebarPart = child; //only one rebar in the RTW assumed
-                console.log("Found REB child with ID", child.id, "under object ID", object.id);
             }
         }
-        
         if (rebarPart?.id != null) {
-          console.log("RebarPart ID", [rebarPart.id]);
             rebarProperties = await API.viewer.getObjectProperties(modelID, [rebarPart.id]);
-            console.log("Rebar Properties for object ID", rebarPart.id, ":", rebarProperties);
         }
         // Extract_Rebar returns an array of rebar object properties for the given object
         const rebars = Extract_Rebar(objectPropertyArray);
@@ -189,7 +183,7 @@ export const getSubAssembliesHWS = async (API: WorkspaceAPI.WorkspaceAPI, spacer
 
         for (const child of heirarchyChildren) {
             const objectName = child.name ?? "";
-            if (objectName.includes("REB")) {
+            if (objectName.includes("REB") || objectName.includes("RB2")) {
                 rebarPart = await API.viewer.getObjectProperties(modelID, [child.id]);
                 subAssyParts.push(rebarPart); // only one rebar in the RTW assumed
 
