@@ -1,7 +1,7 @@
 .jig-root {
   display: flex;
   height: 100%;
-  background: #f5f5f5;
+  background: #f3f3f3;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
   color: #333;
 }
@@ -12,27 +12,26 @@
   flex-direction: column;
   width: 280px;
   height: 100%;
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   color: white;
   border-right: 1px solid rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-  flex-shrink: 0;
 }
 
 .jig-header {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 24px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
 }
 
 .jig-header span:first-child {
   font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
   color: #fff;
   line-height: 1.2;
@@ -40,13 +39,13 @@
 
 .jig-subtitle {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
 }
 
-/* View Grid */
+/* View Grid - Full width in sidebar */
 .jig-view-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -59,31 +58,33 @@
   padding: 12px 10px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
   line-height: 1.3;
+  backdrop-filter: blur(10px);
 }
 
 .jig-view-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .jig-view-btn.active {
-  background: rgba(255, 255, 255, 0.9);
-  color: #2c3e50;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1e3c72;
   border-color: rgba(255, 255, 255, 1);
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 
-/* Tables Container */
+/* Tables Container - Flex grow to fill space */
 .jig-root > div:nth-child(2) {
   flex: 1;
   display: flex;
@@ -92,7 +93,6 @@
   padding: 16px;
   overflow-y: auto;
   overflow-x: hidden;
-  min-width: 0;
 }
 
 .jig-table-container {
@@ -101,13 +101,7 @@
   border: 1px solid #e0e0e0;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  flex-shrink: 1;
-  transition: all 0.2s ease;
-  min-height: 0;
-}
-
-.jig-table-container:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
 }
 
 .jig-table {
@@ -117,7 +111,7 @@
 }
 
 .jig-table thead {
-  background: linear-gradient(to right, #f8f8f8, #fafafa);
+  background: linear-gradient(to right, #f5f5f5, #fafafa);
   border-bottom: 2px solid #e0e0e0;
   position: sticky;
   top: 0;
@@ -136,16 +130,16 @@
 
 .jig-table tbody tr {
   border-bottom: 1px solid #f0f0f0;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .jig-table tbody tr:hover {
-  background: #fafafa;
+  background: #f9f9f9;
 }
 
 .jig-table tbody tr.active {
-  background: linear-gradient(to right, #e8f4f8, #f0f8fb);
-  border-left: 3px solid #2c3e50;
+  background: linear-gradient(to right, #e3f2fd, #f5f9ff);
+  border-left: 3px solid #1e3c72;
   padding-left: 0;
 }
 
@@ -161,13 +155,13 @@
 .jig-table tbody td:first-child {
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
   font-weight: 500;
-  color: #2c3e50;
+  color: #1e3c72;
 }
 
 .jig-btn {
   padding: 6px 14px;
   min-width: 45px;
-  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   color: white;
   border: none;
   border-radius: 4px;
@@ -175,18 +169,18 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(30, 60, 114, 0.2);
 }
 
 .jig-btn:hover {
-  background: linear-gradient(135deg, #1a252f 0%, #192332 100%);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #0d2454 0%, #1a3f6f 100%);
+  box-shadow: 0 4px 8px rgba(30, 60, 114, 0.3);
   transform: translateY(-1px);
 }
 
 .jig-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(30, 60, 114, 0.2);
 }
 
 /* Scrollbar styling */
@@ -248,10 +242,6 @@
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .jig-root {
-    background: #2a2a2a;
-  }
-
   .jig-root > div:nth-child(2) {
     background: #2a2a2a;
   }
@@ -275,7 +265,7 @@
   }
 
   .jig-table tbody tr.active {
-    background: linear-gradient(to right, #1a3a4a, #2a4a5a);
+    background: linear-gradient(to right, #1a3a5a, #2a4a6a);
   }
 
   .jig-table tbody td {
@@ -283,7 +273,7 @@
   }
 
   .jig-table tbody td:first-child {
-    color: #7fbdcc;
+    color: #90caf9;
   }
 
   .jig-table tbody tr {
