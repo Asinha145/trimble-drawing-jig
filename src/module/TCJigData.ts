@@ -26,16 +26,30 @@ export interface MeasurementMarkup {
 
 const ANNOTATION_RED = { r: 255, g: 0, b: 0, a: 255 };
 
+async function getAllObjectIds(modelId: string, parentIds: string[] = []): Promise<string[]> {
+  const objectIds: string[] = [];
+  try {
+    const children = await API.viewer.getHierarchyChildren(modelId, parentIds);
+    if (!children || children.length === 0) return objectIds;
+
+    for (const child of children) {
+      objectIds.push(child.id);
+      const nestedIds = await getAllObjectIds(modelId, [child.id]);
+      objectIds.push(...nestedIds);
+    }
+  } catch (error) {
+    console.warn("Error traversing hierarchy:", error);
+  }
+  return objectIds;
+}
+
 export async function getJigObjects(modelId: string): Promise<JigData | null> {
   try {
-    // Get bounding box of the entire model using hierarchy
-    const allEntities = await API.viewer.getHierarchy(modelId);
-    if (!allEntities || allEntities.length === 0) {
-      console.warn("No entities found in model");
+    const objectIds = await getAllObjectIds(modelId);
+    if (!objectIds || objectIds.length === 0) {
+      console.warn("No objects found in model");
       return null;
     }
-
-    const objectIds = allEntities.map((e: any) => e.id);
     if (objectIds.length === 0) return null;
 
     // Get bounding boxes for all objects
@@ -125,13 +139,10 @@ export async function buildView4VerticalBarDimensions(
   const measurements: MeasurementMarkup[] = [];
 
   try {
-    // Get all objects in the model
-    const allEntities = await API.viewer.getHierarchy(modelId);
-    if (!allEntities || allEntities.length === 0) return measurements;
-
-    const objectIds = allEntities.map((e: any) => e.id);
-    const verticalBars: Map<string, { id: number; minZ: number; maxZ: number; cogX: number; cogY: number; cogZ: number }> = new Map();
-    const horizontalBars: { id: number; cogX: number; cogY: number; cogZ: number; minZ: number; maxZ: number }[] = [];
+    const objectIds = await getAllObjectIds(modelId);
+    if (!objectIds || objectIds.length === 0) return measurements;
+    const verticalBars: Map<string, { id: string; minZ: number; maxZ: number; cogX: number; cogY: number; cogZ: number }> = new Map();
+    const horizontalBars: { id: string; cogX: number; cogY: number; cogZ: number; minZ: number; maxZ: number }[] = [];
 
     // Scan all objects to classify them
     for (const id of objectIds) {
