@@ -390,6 +390,7 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
     }
   };
 
+
   // ── render ────────────────────────────────────────────────────────────────
 
   if (loading) return <p>Loading JIG data…</p>;
@@ -549,6 +550,15 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
       )}
 
       <div className="jig-footer">
+        {jigData?.boundingBox && (
+          <div className="jig-bbox-info">
+            <small>
+              BBox: {((jigData.boundingBox.max.x - jigData.boundingBox.min.x) * 1000).toFixed(0)}×
+              {((jigData.boundingBox.max.y - jigData.boundingBox.min.y) * 1000).toFixed(0)}×
+              {((jigData.boundingBox.max.z - jigData.boundingBox.min.z) * 1000).toFixed(0)} mm
+            </small>
+          </div>
+        )}
         <button className="jig-btn" onClick={handleClearAll}>Clear All</button>
       </div>
     </div>
