@@ -62,7 +62,23 @@ export function JigPanel({ API }: JigPanelProps) {
   }
 
   if (!jigData) {
-    return <p>Failed to load JIG model</p>;
+    return (
+      <div className="root-wrapper">
+        <div className="markNumberDiv">
+          <h4 className="markNumberTitle" style={{ fontSize: '20px', color: 'black' }}>
+            JIG Drawing Tool
+          </h4>
+        </div>
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <p style={{ color: '#999', marginBottom: '20px' }}>
+            This extension must be loaded through Trimble Connect with a JIG model.
+          </p>
+          <p style={{ color: '#666', fontSize: '12px' }}>
+            Visit: <strong>https://connect.trimble.com</strong> and load a JIG project to use this tool.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
