@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getJigObjects, buildView4VerticalBarDimensions, type JigData, type MeasurementMarkup } from '../module/TCJigData';
+import { getJigObjects, buildView4VerticalBarDimensions, type JigData } from '../module/TCJigData';
 import { GetModelID } from '../module/TCFixtureTable';
 import '../App.css';
 
@@ -19,7 +19,7 @@ export function JigPanel({ API }: JigPanelProps) {
         const id = await GetModelID(API);
         setModelID(id);
 
-        const data = await getJigObjects(id);
+        const data = await getJigObjects(API);
         setJigData(data);
       } catch (error) {
         console.error("Error initializing JIG panel:", error);
@@ -40,10 +40,15 @@ export function JigPanel({ API }: JigPanelProps) {
     try {
       if (viewNumber === 4) {
         // Build View 4 vertical bar measurements
-        const measurements = await buildView4VerticalBarDimensions(modelID, jigData, jigData.datumX);
+        const segments = await buildView4VerticalBarDimensions(jigData, jigData.datumX ?? 0);
 
-        if (measurements && measurements.length > 0) {
-          await API.markup.addMeasurementMarkups(measurements);
+        if (segments && segments.length > 0) {
+          const markups = segments.map(seg => ({
+            start: { positionX: seg.startX, positionY: seg.startY, positionZ: seg.startZ },
+            end: { positionX: seg.endX, positionY: seg.endY, positionZ: seg.endZ },
+            color: { r: 255, g: 0, b: 0, a: 255 } // red for View 4
+          }));
+          await API.markup.addMeasurementMarkups(markups);
         }
       }
       // Other views can be added here as needed
