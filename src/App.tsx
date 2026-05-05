@@ -3,9 +3,12 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { DataTableComponentVWS, DataTableComponentHWS } from './components/DataTableComponent';
 import { JigPanel } from './components/JigPanel';
+import { BoundingBoxInfo } from './components/BoundingBoxInfo';
 import { ConnectViewer, API } from './module/TCEntryPoint';
 import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS, getSubAssembliesHWS, getStationConfigHWS, getDatumSideHWS, getOmittedStringers, getStringerColours } from './module/TCFixtureTable';
+import { calculateModelBoundingBox } from './module/BoundingBoxUtil';
 import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity, ObjectState } from 'trimble-connect-workspace-api';
+import { BoundingBox } from './module/BoundingBoxUtil';
 import {datumItem, boundingBox} from './components/types';
 import { start } from 'repl';
 import { get } from 'http';
@@ -23,6 +26,7 @@ function App() {
   const [datumSide, setDatumSide] = useState<string>("");
   const [omittedStringers, setOmittedStringers] = useState<any[]>([]);
   const [spacerColours, setSpacerColours] = useState<{ [key: number]: { r: number; g: number; b: number; a: number } }>({});
+  const [modelBBox, setModelBBox] = useState<BoundingBox | null>(null);
 
 useEffect(() => {
   console.log("🔵 App.tsx: Initializing...");
@@ -83,6 +87,16 @@ useEffect(() => {
         console.log("🟡 Defaulting to: JIG Drawing Tool (no VWS/HWS detected)");
         await API.extension.requestFocus();
         setStation_type("JIG Drawing Tool");
+      }
+
+      // Calculate bounding box for the entire model
+      const bbox = await calculateModelBoundingBox(API);
+      if (bbox) {
+        setModelBBox(bbox);
+        const width = (bbox.max.x - bbox.min.x) * 1000;
+        const height = (bbox.max.y - bbox.min.y) * 1000;
+        const depth = (bbox.max.z - bbox.min.z) * 1000;
+        console.log(`[App] Model bounding box: ${width.toFixed(0)} × ${height.toFixed(0)} × ${depth.toFixed(0)} mm`);
       }
 
       console.log("🟢 App.tsx: Loading complete, station_type set");
@@ -421,7 +435,10 @@ return (
   <>
     {loading ? (
       <p>Loading...</p>
-    ) : station_type === "Vertical Weld Station" ? (
+    ) : (
+      <>
+        <BoundingBoxInfo jigData={modelBBox ? { boundingBox: modelBBox } as any : null} />
+        {station_type === "Vertical Weld Station" ? (
       <div className="root-wrapper">
         <div className="markNumberDiv">
           <h4 className="markNumberTitle" style={markNumberStyle}>
@@ -458,10 +475,12 @@ return (
           <button onClick={handleClearAll}>Clear All</button>
         </div>
       </div>
-    ) : station_type === "JIG Drawing Tool" ? (
-      <JigPanel API={API} modelName={_modelName} />
-    ) : (
-      <p>Station type not supported</p>
+      ) : station_type === "JIG Drawing Tool" ? (
+        <JigPanel API={API} modelName={_modelName} />
+      ) : (
+        <p>Station type not supported</p>
+      )}
+      </>
     )}
   </>
 );
