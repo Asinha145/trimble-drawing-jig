@@ -186,20 +186,18 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
     const children = getRTWChildren(rtwId, data.objects);
     const rebChildren = children.filter(c => c.family === 'REB' || c.family === 'REJ' || c.family === 'RB2');
     const strChildren = children.filter(c => c.family === 'STR');
-    const rtwLabel = shortLabel(rtw.partNumber);
 
+    // Annotate REB children at bar start (no RTW label)
     for (const reb of rebChildren) {
       if (!reb.bbox) continue;
       const ends = barEnds(reb.bbox);
-      await annotateAt(ends.max.x, ends.max.y, ends.max.z, shortLabel(reb.partNumber));
-      await annotateAt(ends.min.x, ends.min.y, ends.min.z, rtwLabel);
+      await annotateAt(ends.min.x, ends.min.y, ends.min.z, shortLabel(reb.partNumber));
     }
+    // Annotate STR children at bar start
     for (const str of strChildren) {
       if (!str.bbox) continue;
-      const cx = ((str.bbox.min.x + str.bbox.max.x) / 2) * 1000;
-      const cy = ((str.bbox.min.y + str.bbox.max.y) / 2) * 1000;
-      const cz = ((str.bbox.min.z + str.bbox.max.z) / 2) * 1000;
-      await annotateAt(cx, cy, cz, str.partNumber);
+      const ends = barEnds(str.bbox);
+      await annotateAt(ends.min.x, ends.min.y, ends.min.z, str.partNumber);
     }
     if (isVLBFamily(rtw.rtwFamily) && strChildren.length && rtw.bbox) {
       const segs = buildVLBDimensions(rtw.bbox, strChildren);
@@ -257,27 +255,23 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
       }
 
       case 5: {
-        // Annotate all HSB RTW assemblies + their REB children
+        // Annotate all HSB RTW assemblies + their REB children at bar start
         const hsbRTWs = objects.filter(o => o.family === 'RTW' && isHSBAssemblyFamily(o.rtwFamily));
         for (const rtw of hsbRTWs) {
           const children = getRTWChildren(rtw.id, objects);
           const rebChildren = children.filter(c => c.family === 'REB' || c.family === 'REJ' || c.family === 'RB2');
           const strChildren = children.filter(c => c.family === 'STR');
-          const rtwLabel = shortLabel(rtw.partNumber); // e.g. "HLBU01"
 
           for (const reb of rebChildren) {
             if (!reb.bbox) continue;
             const ends = barEnds(reb.bbox);
-            await annotateAt(ends.max.x, ends.max.y, ends.max.z, shortLabel(reb.partNumber));
-            await annotateAt(ends.min.x, ends.min.y, ends.min.z, rtwLabel);
+            await annotateAt(ends.min.x, ends.min.y, ends.min.z, shortLabel(reb.partNumber));
           }
 
           for (const str of strChildren) {
             if (!str.bbox) continue;
-            const cx = ((str.bbox.min.x + str.bbox.max.x) / 2) * 1000;
-            const cy = ((str.bbox.min.y + str.bbox.max.y) / 2) * 1000;
-            const cz = ((str.bbox.min.z + str.bbox.max.z) / 2) * 1000;
-            await annotateAt(cx, cy, cz, str.partNumber);
+            const ends = barEnds(str.bbox);
+            await annotateAt(ends.min.x, ends.min.y, ends.min.z, str.partNumber);
           }
 
           // HSB dimension (HLBU/HLBL/HLCU only)
