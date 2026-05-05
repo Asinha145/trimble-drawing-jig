@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getJigObjects, buildView4VerticalBarDimensions, type JigData } from '../module/TCJigData';
+import { getJigObjects, type JigData } from '../module/TCJigData';
 import { GetModelID } from '../module/TCFixtureTable';
 import '../App.css';
 
@@ -39,17 +39,8 @@ export function JigPanel({ API }: JigPanelProps) {
 
     try {
       if (viewNumber === 4) {
-        // Build View 4 vertical bar measurements
-        const segments = await buildView4VerticalBarDimensions(jigData, jigData.datumX ?? 0);
-
-        if (segments && segments.length > 0) {
-          const markups = segments.map(seg => ({
-            start: { positionX: seg.startX, positionY: seg.startY, positionZ: seg.startZ },
-            end: { positionX: seg.endX, positionY: seg.endY, positionZ: seg.endZ },
-            color: { r: 255, g: 0, b: 0, a: 255 } // red for View 4
-          }));
-          await API.markup.addMeasurementMarkups(markups);
-        }
+        // TODO: Implement View 4 - vertical bar measurements
+        console.log('View 4 not yet implemented');
       }
       // Other views can be added here as needed
     } catch (error) {
@@ -136,7 +127,9 @@ export function JigPanel({ API }: JigPanelProps) {
 
       <div style={{ padding: '10px', fontSize: '12px', color: '#999' }}>
         <p>Model ID: {modelID}</p>
-        <p>Bounding Box: X [{jigData.boundingBox.min.x.toFixed(2)}, {jigData.boundingBox.max.x.toFixed(2)}]</p>
+        {jigData.boundingBox && (
+          <p>Bounding Box: X [{jigData.boundingBox.min.x.toFixed(2)}, {jigData.boundingBox.max.x.toFixed(2)}]</p>
+        )}
         <p style={{ color: activeView === 4 ? '#00ff00' : '#999' }}>View 4: Vertical bar measurements (red)</p>
       </div>
     </div>

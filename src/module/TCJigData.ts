@@ -255,9 +255,7 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
 
   // ── Step 7: Extract datum value from JigDatum property ──────────────────────
   console.log('[JIG] Step 7: extracting datum value...');
-  for (const rel of API.viewer.getObjects ? [] : []) {
-    // Note: datum extraction from properties happens in JigPanel via API
-  }
+  // Note: datum extraction from properties happens in JigPanel via API
 
   console.log('[JIG] ── getJigObjects DONE ─────────────────────');
   return { modelID, objects, rtwById, boundingBox, datumValue, datumX };
@@ -674,7 +672,7 @@ export const buildView4VerticalBarDimensions = (
   );
 
   const horizontalBars = objects.filter(o =>
-    isRebarFamily(o.family) && o.bbox && !verticalBars.includes(o) && o.family !== 'OTHER'
+    isRebarFamily(o.family) && o.bbox && !verticalBars.includes(o)
   );
 
   if (!verticalBars.length || !horizontalBars.length) return [];
