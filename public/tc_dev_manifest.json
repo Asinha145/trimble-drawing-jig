@@ -1,6 +1,6 @@
 {
-    "title": "ARMF",
-    "url": "http://localhost:5173/index.html",
+    "title": "JIG Drawing Tool",
+    "url": "https://trimble-jig.ashis.systems/index.html",
     "enabled": true,
     "type": "page"
 }
