@@ -12,8 +12,8 @@
 .jig-header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px;
+  gap: 0;
+  padding: 0;
   border-bottom: 1px solid #ccc;
   flex-shrink: 0;
   background: #e8e8e8;
@@ -23,15 +23,17 @@
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #333;
+  color: #FFD700;
+  background: #0078d4;
+  padding: 12px 16px;
+  text-align: center;
+  border: 2px solid #0078d4;
+  border-radius: 4px;
+  margin: 12px;
 }
 
 .jig-subtitle {
-  font-size: 10px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  font-weight: 500;
+  display: none;
 }
 
 /* View Grid */
