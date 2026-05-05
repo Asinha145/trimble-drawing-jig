@@ -54,17 +54,22 @@ export function JigPanel({ API }: JigPanelProps) {
         // Views 1-3, 5-8: Apply color groups
         const groups = buildViewGroups(viewNumber, jigData);
 
-        // Group ids by color to minimize setObjectState calls
-        const groupsByColor = new Map<string, number[]>();
+        // Separate visible and hidden groups
+        const visibleByColor = new Map<string, number[]>();
+        const hiddenIds: number[] = [];
+
         for (const group of groups) {
-          if (!group.visible) continue;
+          if (!group.visible) {
+            hiddenIds.push(...group.ids);
+            continue;
+          }
           const key = `${group.colour.r}-${group.colour.g}-${group.colour.b}-${group.colour.a}`;
-          if (!groupsByColor.has(key)) groupsByColor.set(key, []);
-          groupsByColor.get(key)!.push(...group.ids);
+          if (!visibleByColor.has(key)) visibleByColor.set(key, []);
+          visibleByColor.get(key)!.push(...group.ids);
         }
 
-        // Apply each color group
-        for (const [key, ids] of groupsByColor) {
+        // Apply visible colors
+        for (const [key, ids] of visibleByColor) {
           const [r, g, b, a] = key.split('-').map(Number);
           const selector: ObjectSelector = {
             modelObjectIds: [{ modelId: modelID, objectRuntimeIds: ids }]
@@ -72,6 +77,17 @@ export function JigPanel({ API }: JigPanelProps) {
           const state: ObjectState = {
             color: { r, g, b, a },
             visible: true
+          };
+          await API.viewer.setObjectState(selector, state);
+        }
+
+        // Hide invisible objects
+        if (hiddenIds.length > 0) {
+          const selector: ObjectSelector = {
+            modelObjectIds: [{ modelId: modelID, objectRuntimeIds: hiddenIds }]
+          };
+          const state: ObjectState = {
+            visible: false
           };
           await API.viewer.setObjectState(selector, state);
         }
