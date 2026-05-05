@@ -1,12 +1,13 @@
 .jig-root {
   display: flex;
   flex-direction: column;
-  height: auto;
-  width: auto;
+  height: 100%;
+  width: 100%;
   background: #f5f5f5;
   font-family: system-ui, -apple-system, sans-serif;
   color: #333;
-  overflow-y: auto;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .jig-header {
@@ -17,6 +18,7 @@
   border-bottom: 1px solid #ccc;
   flex-shrink: 0;
   background: #e8e8e8;
+  box-sizing: border-box;
 }
 
 .jig-header span:first-child {
@@ -45,6 +47,7 @@
   flex-shrink: 0;
   background: #e8e8e8;
   border-bottom: 1px solid #ccc;
+  box-sizing: border-box;
 }
 
 .jig-view-btn {
@@ -79,10 +82,11 @@
   border: 1px solid #ccc;
   border-top: none;
   overflow: hidden;
-  flex-shrink: 0;
+  flex: 1;
   margin: 0;
-  max-height: 400px;
+  min-height: 100px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .jig-table-container::-webkit-scrollbar {
@@ -186,6 +190,7 @@
   border-top: 1px solid #ccc;
   background: #e8e8e8;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .jig-footer .jig-btn {
