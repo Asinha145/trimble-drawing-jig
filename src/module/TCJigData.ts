@@ -658,8 +658,8 @@ export const buildHSBDimension = (
   return { startX: rebMinX, startY: cogY, startZ: cogZ, endX: closestEdgeX, endY: cogY, endZ: cogZ };
 };
 
-// View 4: Vertical bars → measurements from bar bottom to closest horizontal bar center
-// Groups by unique bar mark — one measurement per unique mark
+// View 4: Vertical bars → measurements from bar bottom to center of bottommost horizontal bar
+// For each bar mark: up to 2 dimensions (closest to datum side, and farthest away)
 export const buildView4VerticalBarDimensions = (
   data: JigData,
   datumX: number  // datum reference (min X for 'left', max X for 'right')
@@ -677,72 +677,68 @@ export const buildView4VerticalBarDimensions = (
 
   if (!verticalBars.length || !horizontalBars.length) return [];
 
-  // ── sort vertical bars by distance from datum (closest first) ──────────────
-  const barsWithDist = verticalBars.map(bar => ({
-    bar,
-    barMark: extractBarMark(bar.partNumber),
-    distFromDatum: Math.abs((bar.bbox!.min.x + bar.bbox!.max.x) / 2 - datumX),
-  }));
-
-  barsWithDist.sort((a, b) => a.distFromDatum - b.distFromDatum);
-
-  // ── group by unique bar mark ───────────────────────────────────────────────
-  const barsByMark = new Map<string, typeof barsWithDist[0]>();
-  for (const item of barsWithDist) {
-    if (!barsByMark.has(item.barMark)) {
-      barsByMark.set(item.barMark, item);
+  // ── find bottommost horizontal bar (lowest Z) ──────────────────────────────
+  let bottomHorizBar: typeof objects[0] | null = null;
+  let minZ = Infinity;
+  for (const hBar of horizontalBars) {
+    if (hBar.bbox && hBar.bbox.min.z < minZ) {
+      minZ = hBar.bbox.min.z;
+      bottomHorizBar = hBar;
     }
   }
 
-  // ── create one measurement per unique bar mark ─────────────────────────────
+  if (!bottomHorizBar || !bottomHorizBar.bbox) return [];
+
+  const horizCogX = (bottomHorizBar.bbox.min.x + bottomHorizBar.bbox.max.x) / 2 * 1000;
+  const horizCogY = (bottomHorizBar.bbox.min.y + bottomHorizBar.bbox.max.y) / 2 * 1000;
+  const horizCogZ = (bottomHorizBar.bbox.min.z + bottomHorizBar.bbox.max.z) / 2 * 1000;
+
+  // ── group vertical bars by mark, sorted by distance from datum ──────────────
+  const barsByMark = new Map<string, typeof verticalBars>();
+  for (const bar of verticalBars) {
+    const mark = extractBarMark(bar.partNumber);
+    if (!barsByMark.has(mark)) {
+      barsByMark.set(mark, []);
+    }
+    barsByMark.get(mark)!.push(bar);
+  }
+
+  // Sort each mark's bars by distance from datum (closest first)
+  for (const [_, bars] of barsByMark) {
+    bars.sort((a, b) => {
+      const distA = Math.abs((a.bbox!.min.x + a.bbox!.max.x) / 2 - datumX);
+      const distB = Math.abs((b.bbox!.min.x + b.bbox!.max.x) / 2 - datumX);
+      return distA - distB;
+    });
+  }
+
+  // ── create up to 2 dimensions per bar mark (closest to datum, and farthest) ─
   const segments: DimSegment[] = [];
 
-  for (const [barMark, { bar: vertBar }] of barsByMark) {
-    if (!vertBar.bbox) continue;
-
-    // Start: bottom of vertical bar (min.z)
-    const vertBarCogX = (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2 * 1000;
-    const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
-    const vertBarBottomZ = vertBar.bbox.min.z * 1000;
-
-    // Find closest horizontal bar
-    let closestHorizBar: typeof objects[0] | null = null;
-    let minDist = Infinity;
-
-    for (const horizBar of horizontalBars) {
-      if (!horizBar.bbox) continue;
-
-      const horizCogX = (horizBar.bbox.min.x + horizBar.bbox.max.x) / 2;
-      const horizCogY = (horizBar.bbox.min.y + horizBar.bbox.max.y) / 2;
-      const horizCogZ = (horizBar.bbox.min.z + horizBar.bbox.max.z) / 2;
-
-      // 3D distance
-      const dx = horizCogX - (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2;
-      const dy = horizCogY - (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2;
-      const dz = horizCogZ - (vertBar.bbox.min.z + vertBar.bbox.max.z) / 2;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (dist < minDist) {
-        minDist = dist;
-        closestHorizBar = horizBar;
-      }
+  for (const [barMark, bars] of barsByMark) {
+    // Take closest to datum (index 0) and farthest (index -1)
+    const indicesToUse = [0]; // Always include closest
+    if (bars.length > 1) {
+      indicesToUse.push(bars.length - 1); // Add farthest if exists
     }
 
-    if (!closestHorizBar || !closestHorizBar.bbox) continue;
+    for (const idx of indicesToUse) {
+      const vertBar = bars[idx];
+      if (!vertBar.bbox) continue;
 
-    // End: center of horizontal bar
-    const horizCogX = (closestHorizBar.bbox.min.x + closestHorizBar.bbox.max.x) / 2 * 1000;
-    const horizCogY = (closestHorizBar.bbox.min.y + closestHorizBar.bbox.max.y) / 2 * 1000;
-    const horizCogZ = (closestHorizBar.bbox.min.z + closestHorizBar.bbox.max.z) / 2 * 1000;
+      const vertBarCogX = (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2 * 1000;
+      const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
+      const vertBarBottomZ = vertBar.bbox.min.z * 1000;
 
-    segments.push({
-      startX: vertBarCogX,
-      startY: vertBarCogY,
-      startZ: vertBarBottomZ,
-      endX: horizCogX,
-      endY: horizCogY,
-      endZ: horizCogZ,
-    });
+      segments.push({
+        startX: vertBarCogX,
+        startY: vertBarCogY,
+        startZ: vertBarBottomZ,
+        endX: horizCogX,
+        endY: horizCogY,
+        endZ: horizCogZ,
+      });
+    }
   }
 
   return segments;
