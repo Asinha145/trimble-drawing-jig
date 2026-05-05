@@ -34,4 +34,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: trimble-jig
           directory: dist
-          productionBranch: main
+          branch: main
