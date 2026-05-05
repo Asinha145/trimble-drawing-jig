@@ -171,12 +171,15 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
   // ── view 3 helpers ────────────────────────────────────────────────────────
 
   const annotateRTWLabelsOnly = async (data: JigData, familyCheck: (f?: RTWFamily) => boolean) => {
+    const datumX = data.datumX ?? 0;
     for (const rtw of data.objects.filter(o => o.family === 'RTW' && familyCheck(o.rtwFamily))) {
       if (!rtw.bbox) continue;
-      const cx = ((rtw.bbox.min.x + rtw.bbox.max.x) / 2) * 1000;
-      const cy = ((rtw.bbox.min.y + rtw.bbox.max.y) / 2) * 1000;
-      const cz = ((rtw.bbox.min.z + rtw.bbox.max.z) / 2) * 1000;
-      await annotateAt(cx, cy, cz, shortLabel(rtw.partNumber));
+      // Place RTW annotation at closest end to datum
+      const ends = barEnds(rtw.bbox);
+      const distMin = Math.abs(ends.min.x - datumX);
+      const distMax = Math.abs(ends.max.x - datumX);
+      const closestEnd = distMin < distMax ? ends.min : ends.max;
+      await annotateAt(closestEnd.x, closestEnd.y, closestEnd.z, shortLabel(rtw.partNumber));
     }
   };
 
