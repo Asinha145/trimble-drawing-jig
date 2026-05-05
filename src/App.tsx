@@ -28,54 +28,60 @@ useEffect(() => {
   ConnectViewer();
 
   setTimeout(async function () {
-    const id = await GetModelID(API);
-    setModelID(id);
-const sliceIndex = modelName[5] === "-" ? 5 : 6;
-    if (modelName.includes("VWS")) {
-      await API.extension.requestFocus();
-      setModelName(modelName.slice(0, 6));
-      setStation_type("Vertical Weld Station");
-setModelName(modelName.slice(0, sliceIndex));
-      const getRebars = await GetRebarsVWS(API);
-      setSubAssemblyList(getRebars);
+    try {
+      const id = await GetModelID(API);
+      setModelID(id);
+      const sliceIndex = modelName[5] === "-" ? 5 : 6;
+      if (modelName.includes("VWS")) {
+        await API.extension.requestFocus();
+        setModelName(modelName.slice(0, 6));
+        setStation_type("Vertical Weld Station");
+        setModelName(modelName.slice(0, sliceIndex));
+        const getRebars = await GetRebarsVWS(API);
+        setSubAssemblyList(getRebars);
 
-      setOmittedStringers(await getOmittedStringers(API, "Vertical Weld Station"));
-    }
-    else if (modelName.includes("HWS")) {
-      await API.extension.requestFocus();
+        setOmittedStringers(await getOmittedStringers(API, "Vertical Weld Station"));
+      }
+      else if (modelName.includes("HWS")) {
+        await API.extension.requestFocus();
 
-setModelName(modelName.slice(0, sliceIndex));
-      setStation_type("Horizontal Weld Station");
+        setModelName(modelName.slice(0, sliceIndex));
+        setStation_type("Horizontal Weld Station");
 
-      // Preload other HWS data in parallel (optional, faster)
-      const [stationConfig, plates, datumSide, omitted] = await Promise.all([
-        getStationConfigHWS(API),
-        getPlatesHWS(API),
-        getDatumSideHWS(API),
-        getOmittedStringers(API),
-      ]);
-      setStation_Config(stationConfig);
-      setPlateList(plates);
-      setDatumSide(datumSide);
-      setOmittedStringers(omitted);
+        // Preload other HWS data in parallel (optional, faster)
+        const [stationConfig, plates, datumSide, omitted] = await Promise.all([
+          getStationConfigHWS(API),
+          getPlatesHWS(API),
+          getDatumSideHWS(API),
+          getOmittedStringers(API),
+        ]);
+        setStation_Config(stationConfig);
+        setPlateList(plates);
+        setDatumSide(datumSide);
+        setOmittedStringers(omitted);
 
-      // Get colours, then use the local 'colours' variable (not the state yet)
-      const colours = await getStringerColours(API);
-      setSpacerColours(colours); // schedule state update
+        // Get colours, then use the local 'colours' variable (not the state yet)
+        const colours = await getStringerColours(API);
+        setSpacerColours(colours); // schedule state update
 
-      // Use the freshly resolved colours for downstream work in this tick
-      const subAssemblies = await getSubAssembliesHWS(API, colours);
-      setSubAssemblyListHWS(subAssemblies);
+        // Use the freshly resolved colours for downstream work in this tick
+        const subAssemblies = await getSubAssembliesHWS(API, colours);
+        setSubAssemblyListHWS(subAssemblies);
 
-      await colourHWSSpacers(colours);
-    }
-    else {
-      // Default to JIG Drawing Tool
-      await API.extension.requestFocus();
+        await colourHWSSpacers(colours);
+      }
+      else {
+        // Default to JIG Drawing Tool
+        await API.extension.requestFocus();
+        setStation_type("JIG Drawing Tool");
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error initializing app:", error);
       setStation_type("JIG Drawing Tool");
+      setLoading(false);
     }
-
-    setLoading(false);
   }, 3000);
 }, []);
 
