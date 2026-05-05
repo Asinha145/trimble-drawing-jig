@@ -459,7 +459,7 @@ return (
         </div>
       </div>
     ) : station_type === "JIG Drawing Tool" ? (
-      <JigPanel API={API} />
+      <JigPanel API={API} modelName={_modelName} />
     ) : (
       <p>Station type not supported</p>
     )}
