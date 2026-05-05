@@ -1,23 +1,22 @@
 .jig-root {
   display: flex;
   height: 100%;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  background: #f5f5f5;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-  color: #1a1a2e;
+  color: #333;
 }
 
-/* Left Sidebar - Premium gradient */
+/* Left Sidebar */
 .jig-root > div:first-child {
   display: flex;
   flex-direction: column;
   width: 280px;
   height: 100%;
-  background: linear-gradient(180deg, #0f3460 0%, #16213e 50%, #0f1620 100%),
-              radial-gradient(circle at 20% 50%, rgba(0, 200, 255, 0.08) 0%, transparent 50%);
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   color: white;
-  border-right: 2px solid rgba(0, 200, 255, 0.2);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
   overflow-y: auto;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25), inset -2px 0 10px rgba(0, 200, 255, 0.1);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
 }
 
@@ -26,29 +25,28 @@
   flex-direction: column;
   gap: 8px;
   padding: 24px 20px;
-  border-bottom: 1px solid rgba(0, 200, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
 }
 
 .jig-header span:first-child {
   font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #00d4ff;
+  color: #fff;
   line-height: 1.2;
-  text-shadow: 0 0 10px rgba(0, 200, 255, 0.4);
 }
 
 .jig-subtitle {
-  font-size: 10px;
-  color: rgba(0, 200, 255, 0.7);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
-/* View Grid - Full width in sidebar */
+/* View Grid */
 .jig-view-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -60,43 +58,38 @@
 .jig-view-btn {
   padding: 12px 10px;
   font-size: 11px;
-  font-weight: 700;
-  background: rgba(0, 200, 255, 0.08);
-  color: #00d4ff;
-  border: 1.5px solid rgba(0, 200, 255, 0.3);
-  border-radius: 8px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.3s ease;
   text-align: center;
   line-height: 1.3;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 0 10px rgba(0, 200, 255, 0.1);
-  text-shadow: 0 0 10px rgba(0, 200, 255, 0.3);
 }
 
 .jig-view-btn:hover {
-  background: rgba(0, 200, 255, 0.15);
-  border-color: rgba(0, 200, 255, 0.6);
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 20px rgba(0, 200, 255, 0.3), inset 0 0 10px rgba(0, 200, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
 }
 
 .jig-view-btn.active {
-  background: linear-gradient(135deg, rgba(0, 200, 255, 0.25) 0%, rgba(0, 100, 200, 0.15) 100%);
-  color: #fff;
-  border-color: rgba(0, 200, 255, 0.8);
-  font-weight: 800;
-  box-shadow: 0 0 25px rgba(0, 200, 255, 0.5), inset 0 0 15px rgba(0, 200, 255, 0.2);
-  text-shadow: 0 0 15px rgba(0, 200, 255, 0.6);
+  background: rgba(255, 255, 255, 0.9);
+  color: #2c3e50;
+  border-color: rgba(255, 255, 255, 1);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Tables Container - Flex grow to fill space */
+/* Tables Container */
 .jig-root > div:nth-child(2) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px;
+  gap: 12px;
+  padding: 16px;
   overflow-y: auto;
   overflow-x: hidden;
   min-width: 0;
@@ -104,17 +97,17 @@
 
 .jig-table-container {
   background: white;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 20px rgba(0, 200, 255, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   flex-shrink: 1;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   min-height: 0;
 }
 
 .jig-table-container:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1), 0 0 30px rgba(0, 200, 255, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .jig-table {
@@ -124,119 +117,111 @@
 }
 
 .jig-table thead {
-  background: linear-gradient(to right, #0f3460 0%, #16213e 100%);
-  border-bottom: 2px solid rgba(0, 200, 255, 0.2);
+  background: linear-gradient(to right, #f8f8f8, #fafafa);
+  border-bottom: 2px solid #e0e0e0;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .jig-table thead th {
-  padding: 14px 16px;
+  padding: 12px 14px;
   text-align: left;
-  font-weight: 700;
-  color: #00d4ff;
+  font-weight: 600;
+  color: #555;
   text-transform: uppercase;
-  font-size: 9px;
-  letter-spacing: 1px;
-  text-shadow: 0 0 8px rgba(0, 200, 255, 0.3);
+  font-size: 10px;
+  letter-spacing: 0.5px;
 }
 
 .jig-table tbody tr {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-  transition: all 0.25s ease;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.15s ease;
 }
 
 .jig-table tbody tr:hover {
-  background: linear-gradient(to right, rgba(0, 200, 255, 0.04) 0%, rgba(0, 100, 200, 0.02) 100%);
+  background: #fafafa;
 }
 
 .jig-table tbody tr.active {
-  background: linear-gradient(to right, rgba(0, 200, 255, 0.15) 0%, rgba(0, 100, 200, 0.08) 100%);
-  border-left: 4px solid #00d4ff;
+  background: linear-gradient(to right, #e8f4f8, #f0f8fb);
+  border-left: 3px solid #2c3e50;
   padding-left: 0;
-  box-shadow: inset 0 0 10px rgba(0, 200, 255, 0.1);
 }
 
 .jig-table tbody tr.active td:first-child {
-  padding-left: 12px;
+  padding-left: 11px;
 }
 
 .jig-table tbody td {
-  padding: 12px 16px;
-  color: #1a1a2e;
+  padding: 12px 14px;
+  color: #333;
 }
 
 .jig-table tbody td:first-child {
-  font-family: 'Courier New', 'Courier', monospace;
-  font-weight: 600;
-  color: #0f3460;
-  background: linear-gradient(90deg, rgba(0, 200, 255, 0.05) 0%, transparent 100%);
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  font-weight: 500;
+  color: #2c3e50;
 }
 
 .jig-btn {
-  padding: 8px 18px;
-  min-width: 50px;
-  background: linear-gradient(135deg, #0f3460 0%, #1a5f7a 100%);
-  color: #00d4ff;
-  border: 1.5px solid rgba(0, 200, 255, 0.3);
-  border-radius: 8px;
+  padding: 6px 14px;
+  min-width: 45px;
+  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 12px rgba(0, 100, 150, 0.2), 0 0 15px rgba(0, 200, 255, 0.15);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .jig-btn:hover {
-  background: linear-gradient(135deg, #1a5f7a 0%, #0f3460 100%);
-  border-color: rgba(0, 200, 255, 0.6);
-  box-shadow: 0 8px 20px rgba(0, 100, 150, 0.3), 0 0 25px rgba(0, 200, 255, 0.3);
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, #1a252f 0%, #192332 100%);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
 .jig-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 100, 150, 0.2), inset 0 0 10px rgba(0, 200, 255, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Scrollbar styling */
 .jig-root > div:first-child::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .jig-root > div:first-child::-webkit-scrollbar-track {
-  background: rgba(0, 200, 255, 0.05);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .jig-root > div:first-child::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(0, 200, 255, 0.4) 0%, rgba(0, 100, 200, 0.3) 100%);
-  border-radius: 4px;
-  box-shadow: 0 0 10px rgba(0, 200, 255, 0.2);
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 
 .jig-root > div:first-child::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(0, 200, 255, 0.6) 0%, rgba(0, 100, 200, 0.5) 100%);
-  box-shadow: 0 0 15px rgba(0, 200, 255, 0.4);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .jig-root > div:nth-child(2)::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .jig-root > div:nth-child(2)::-webkit-scrollbar-track {
-  background: rgba(0, 200, 255, 0.03);
+  background: #f5f5f5;
 }
 
 .jig-root > div:nth-child(2)::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(0, 200, 255, 0.25) 0%, rgba(0, 100, 200, 0.15) 100%);
-  border-radius: 4px;
+  background: #d0d0d0;
+  border-radius: 3px;
 }
 
 .jig-root > div:nth-child(2)::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(0, 200, 255, 0.4) 0%, rgba(0, 100, 200, 0.3) 100%);
+  background: #a0a0a0;
 }
 
 /* Responsive adjustments */
@@ -252,7 +237,7 @@
   }
 
   .jig-header {
-    padding: 18px 16px;
+    padding: 16px;
     gap: 6px;
   }
 
@@ -264,46 +249,44 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .jig-root {
-    background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 100%);
+    background: #2a2a2a;
   }
 
   .jig-root > div:nth-child(2) {
-    background: linear-gradient(180deg, #0f1620 0%, #151932 100%);
+    background: #2a2a2a;
   }
 
   .jig-table-container {
-    background: rgba(20, 20, 40, 0.8);
-    border-color: rgba(0, 200, 255, 0.15);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 200, 255, 0.08);
+    background: #333;
+    border-color: #444;
   }
 
   .jig-table thead {
-    background: linear-gradient(to right, rgba(15, 52, 96, 0.6) 0%, rgba(22, 33, 62, 0.6) 100%);
-    border-bottom-color: rgba(0, 200, 255, 0.3);
+    background: #404040;
+    border-bottom-color: #555;
   }
 
   .jig-table thead th {
-    color: #00e5ff;
+    color: #aaa;
   }
 
   .jig-table tbody tr:hover {
-    background: rgba(0, 200, 255, 0.08);
+    background: #3a3a3a;
   }
 
   .jig-table tbody tr.active {
-    background: linear-gradient(to right, rgba(0, 200, 255, 0.2) 0%, rgba(0, 100, 200, 0.12) 100%);
-    border-left-color: #00e5ff;
+    background: linear-gradient(to right, #1a3a4a, #2a4a5a);
   }
 
   .jig-table tbody td {
-    color: #b0c4de;
+    color: #ccc;
   }
 
   .jig-table tbody td:first-child {
-    color: #00d4ff;
+    color: #7fbdcc;
   }
 
   .jig-table tbody tr {
-    border-bottom-color: rgba(0, 200, 255, 0.1);
+    border-bottom-color: #404040;
   }
 }
