@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getJigObjects, type JigData } from '../module/TCJigData';
+import { getJigObjects, buildViewGroups, buildView4VerticalBarDimensions, type JigData } from '../module/TCJigData';
 import { GetModelID } from '../module/TCFixtureTable';
+import type { ObjectSelector, ObjectState } from 'trimble-connect-workspace-api';
 import '../App.css';
 
 interface JigPanelProps {
@@ -39,10 +40,42 @@ export function JigPanel({ API }: JigPanelProps) {
 
     try {
       if (viewNumber === 4) {
-        // TODO: Implement View 4 - vertical bar measurements
-        console.log('View 4 not yet implemented');
+        // View 4: Vertical bar measurements (red lines from bar bottom to closest horizontal bar)
+        const segments = buildView4VerticalBarDimensions(jigData, jigData.datumX ?? 0);
+        if (segments && segments.length > 0) {
+          const markups = segments.map(seg => ({
+            start: { positionX: seg.startX, positionY: seg.startY, positionZ: seg.startZ },
+            end: { positionX: seg.endX, positionY: seg.endY, positionZ: seg.endZ },
+            color: { r: 255, g: 0, b: 0, a: 255 } // red
+          }));
+          await API.markup.addMeasurementMarkups(markups);
+        }
+      } else {
+        // Views 1-3, 5-8: Apply color groups
+        const groups = buildViewGroups(viewNumber, jigData);
+
+        // Group ids by color to minimize setObjectState calls
+        const groupsByColor = new Map<string, number[]>();
+        for (const group of groups) {
+          if (!group.visible) continue;
+          const key = `${group.colour.r}-${group.colour.g}-${group.colour.b}-${group.colour.a}`;
+          if (!groupsByColor.has(key)) groupsByColor.set(key, []);
+          groupsByColor.get(key)!.push(...group.ids);
+        }
+
+        // Apply each color group
+        for (const [key, ids] of groupsByColor) {
+          const [r, g, b, a] = key.split('-').map(Number);
+          const selector: ObjectSelector = {
+            modelObjectIds: [{ modelId: modelID, objectRuntimeIds: ids }]
+          };
+          const state: ObjectState = {
+            color: { r, g, b, a },
+            visible: true
+          };
+          await API.viewer.setObjectState(selector, state);
+        }
       }
-      // Other views can be added here as needed
     } catch (error) {
       console.error(`Error rendering View ${viewNumber}:`, error);
     }
