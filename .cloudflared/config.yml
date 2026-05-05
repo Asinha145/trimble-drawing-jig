@@ -1,0 +1,7 @@
+tunnel: trimble-jig-tunnel
+credentials-file: /root/.cloudflared/trimble-jig-tunnel.json
+
+ingress:
+  - hostname: trimble-jig.tunnel.local
+    service: http://localhost:3000
+  - service: http_status:404
