@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import { DataTableComponentVWS, DataTableComponentHWS } from './components/DataTableComponent';
+import { JigPanel } from './components/JigPanel';
 import { ConnectViewer, API } from './module/TCEntryPoint';
 import { GetModelID, modelName, GetRebarsVWS, getPlatesHWS, getSubAssembliesHWS, getStationConfigHWS, getDatumSideHWS, getOmittedStringers, getStringerColours } from './module/TCFixtureTable';
 import type { ObjectSelector, IModelEntities, HierarchyType, HierarchyEntity, ObjectState } from 'trimble-connect-workspace-api';
@@ -42,7 +43,7 @@ setModelName(modelName.slice(0, sliceIndex));
     }
     else if (modelName.includes("HWS")) {
       await API.extension.requestFocus();
-      
+
 setModelName(modelName.slice(0, sliceIndex));
       setStation_type("Horizontal Weld Station");
 
@@ -56,7 +57,7 @@ setModelName(modelName.slice(0, sliceIndex));
       setStation_Config(stationConfig);
       setPlateList(plates);
       setDatumSide(datumSide);
-      setOmittedStringers(omitted); 
+      setOmittedStringers(omitted);
 
       // Get colours, then use the local 'colours' variable (not the state yet)
       const colours = await getStringerColours(API);
@@ -67,6 +68,11 @@ setModelName(modelName.slice(0, sliceIndex));
       setSubAssemblyListHWS(subAssemblies);
 
       await colourHWSSpacers(colours);
+    }
+    else {
+      // Default to JIG Drawing Tool
+      await API.extension.requestFocus();
+      setStation_type("JIG Drawing Tool");
     }
 
     setLoading(false);
@@ -435,8 +441,10 @@ return (
           <button onClick={handleClearAll}>Clear All</button>
         </div>
       </div>
+    ) : station_type === "JIG Drawing Tool" ? (
+      <JigPanel API={API} />
     ) : (
-      <p>Station type not supported</p> 
+      <p>Station type not supported</p>
     )}
   </>
 );

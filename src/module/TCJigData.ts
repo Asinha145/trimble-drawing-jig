@@ -1,0 +1,237 @@
+import { API } from './TCEntryPoint';
+
+export interface JigData {
+  boundingBox: {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  };
+  datumValue: string;
+  datumX: number;
+}
+
+export interface DimSegment {
+  startX: number;
+  startY: number;
+  startZ: number;
+  endX: number;
+  endY: number;
+  endZ: number;
+}
+
+export interface MeasurementMarkup {
+  start: { positionX: number; positionY: number; positionZ: number };
+  end: { positionX: number; positionY: number; positionZ: number };
+  color: { r: number; g: number; b: number; a: number };
+}
+
+const ANNOTATION_RED = { r: 255, g: 0, b: 0, a: 255 };
+
+export async function getJigObjects(modelId: string): Promise<JigData | null> {
+  try {
+    // Get all objects in the model
+    const models = await API.model.getModels();
+    const model = models.find((m: any) => m.versionId === modelId);
+    if (!model) return null;
+
+    // Get bounding box of the entire model
+    const allEntities = await API.viewer.getHierarchy(modelId);
+    if (!allEntities || allEntities.length === 0) return null;
+
+    const objectIds = allEntities.map((e: any) => e.id);
+    if (objectIds.length === 0) return null;
+
+    const boundingBoxes = await API.viewer.getObjectBoundingBoxes(modelId, objectIds);
+    if (!boundingBoxes || boundingBoxes.length === 0) return null;
+
+    // Calculate overall bounding box
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+    for (const bb of boundingBoxes as any[]) {
+      if (bb.boundingBox) {
+        minX = Math.min(minX, bb.boundingBox.min.x);
+        minY = Math.min(minY, bb.boundingBox.min.y);
+        minZ = Math.min(minZ, bb.boundingBox.min.z);
+        maxX = Math.max(maxX, bb.boundingBox.max.x);
+        maxY = Math.max(maxY, bb.boundingBox.max.y);
+        maxZ = Math.max(maxZ, bb.boundingBox.max.z);
+      }
+    }
+
+    const boundingBox = {
+      min: { x: minX, y: minY, z: minZ },
+      max: { x: maxX, y: maxY, z: maxZ }
+    };
+
+    // Try to extract JigDatum from properties
+    let datumValue = "left";
+    let datumX = boundingBox.min.x;
+
+    for (const id of objectIds.slice(0, 10)) { // Check first 10 objects for performance
+      try {
+        const props = await API.viewer.getObjectProperties(modelId, [id]);
+        if (props && props[0]?.properties) {
+          for (const prop of props[0].properties) {
+            if (prop.name === "SOLIDWORKS Custom Properties" && prop.properties) {
+              for (const customProp of prop.properties) {
+                if (customProp.name?.includes("JigDatum")) {
+                  datumValue = customProp.value?.toLowerCase() || "left";
+                  datumX = datumValue === "right" ? boundingBox.max.x : boundingBox.min.x;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to next object
+      }
+    }
+
+    return {
+      boundingBox,
+      datumValue,
+      datumX
+    };
+  } catch (error) {
+    console.error("Error getting JIG objects:", error);
+    return null;
+  }
+}
+
+function extractBarMark(partNumber: string): string {
+  const parts = partNumber.split('-');
+  return parts[parts.length - 1] || partNumber;
+}
+
+function euclideanDistance(
+  x1: number, y1: number, z1: number,
+  x2: number, y2: number, z2: number
+): number {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dz = z2 - z1;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+export async function buildView4VerticalBarDimensions(
+  modelId: string,
+  _data: JigData,
+  _datumX: number
+): Promise<MeasurementMarkup[]> {
+  const measurements: MeasurementMarkup[] = [];
+
+  try {
+    // Get all objects in the model
+    const allEntities = await API.viewer.getHierarchy(modelId);
+    if (!allEntities || allEntities.length === 0) return measurements;
+
+    const objectIds = allEntities.map((e: any) => e.id);
+    const verticalBars: Map<string, { id: number; minZ: number; maxZ: number; cogX: number; cogY: number; cogZ: number }> = new Map();
+    const horizontalBars: { id: number; cogX: number; cogY: number; cogZ: number; minZ: number; maxZ: number }[] = [];
+
+    // Scan all objects to classify them
+    for (const id of objectIds) {
+      try {
+        const props = await API.viewer.getObjectProperties(modelId, [id]);
+        const bb = await API.viewer.getObjectBoundingBoxes(modelId, [id]);
+
+        if (!props || !props[0]?.properties || !bb || !bb[0]?.boundingBox) continue;
+
+        const customProps = props[0].properties.find((p: any) => p.name === "SOLIDWORKS Custom Properties");
+        if (!customProps || !customProps.properties) continue;
+
+        const partNumber = customProps.properties.find((p: any) => p.name?.includes("bim2cam:Part Number"))?.value || "";
+        if (!partNumber) continue;
+
+        const bbox = bb[0].boundingBox;
+        const cogX = (bbox.min.x + bbox.max.x) / 2 * 1000;
+        const cogY = (bbox.min.y + bbox.max.y) / 2 * 1000;
+        const cogZ = (bbox.min.z + bbox.max.z) / 2 * 1000;
+        const minZ = bbox.min.z * 1000;
+        const maxZ = bbox.max.z * 1000;
+
+        const barMark = extractBarMark(partNumber);
+        const isVertical = Math.abs(bbox.max.z - bbox.min.z) > Math.abs(bbox.max.x - bbox.min.x);
+
+        if (isVertical) {
+          // Vertical bar - add to map keyed by bar mark
+          if (!verticalBars.has(barMark)) {
+            verticalBars.set(barMark, { id, minZ, maxZ, cogX, cogY, cogZ });
+          }
+        } else {
+          // Horizontal bar
+          horizontalBars.push({ id, cogX, cogY, cogZ, minZ, maxZ });
+        }
+      } catch (e) {
+        // Continue to next object
+      }
+    }
+
+    // For each vertical bar mark, create a measurement to the closest horizontal bar
+    for (const [mark, vertBar] of verticalBars.entries()) {
+      let closestHBar: (typeof horizontalBars)[0] | null = null;
+      let minDist = Infinity;
+
+      for (const hBar of horizontalBars) {
+        const dist = euclideanDistance(vertBar.cogX, vertBar.cogY, vertBar.minZ, hBar.cogX, hBar.cogY, hBar.maxZ);
+        if (dist < minDist) {
+          minDist = dist;
+          closestHBar = hBar;
+        }
+      }
+
+      if (closestHBar) {
+        measurements.push({
+          start: {
+            positionX: vertBar.cogX,
+            positionY: vertBar.cogY,
+            positionZ: vertBar.minZ
+          },
+          end: {
+            positionX: closestHBar.cogX,
+            positionY: closestHBar.cogY,
+            positionZ: closestHBar.cogZ
+          },
+          color: ANNOTATION_RED
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error building View 4 dimensions:", error);
+  }
+
+  return measurements;
+}
+
+export async function buildViewGroups(_modelId: string): Promise<any> {
+  return {};
+}
+
+export async function buildRTWFocusGroups(_modelId: string): Promise<any> {
+  return {};
+}
+
+export async function buildView2Groups(_modelId: string): Promise<any> {
+  return {};
+}
+
+export async function buildView3Groups(_modelId: string): Promise<any> {
+  return {};
+}
+
+export async function buildView5Groups(_modelId: string): Promise<any> {
+  return {};
+}
+
+export async function buildView6Groups(_modelId: string): Promise<any> {
+  return {};
+}
+
+export async function buildView7Groups(_modelId: string): Promise<any> {
+  return {};
+}
+
+export async function buildView8Groups(_modelId: string): Promise<any> {
+  return {};
+}
