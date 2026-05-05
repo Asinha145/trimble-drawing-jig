@@ -1,94 +1,136 @@
 .jig-root {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  background: #f5f5f5;
   height: 100%;
+  background: #f3f3f3;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+  color: #333;
+}
+
+/* Left Sidebar */
+.jig-root > div:first-child {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
   overflow-y: auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
 }
 
 .jig-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  border-bottom: 2px solid #0e639c;
-  padding-bottom: 12px;
+  gap: 8px;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
 }
 
 .jig-header span:first-child {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 1.2;
 }
 
 .jig-subtitle {
-  font-size: 12px;
-  color: #666;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
+/* View Grid - Full width in sidebar */
 .jig-view-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 16px;
+  flex-shrink: 0;
 }
 
 .jig-view-btn {
-  padding: 10px 8px;
-  font-size: 12px;
-  font-weight: 500;
-  background: #e8e8e8;
-  color: #333;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 12px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  line-height: 1.3;
+  backdrop-filter: blur(10px);
 }
 
 .jig-view-btn:hover {
-  background: #d0d0d0;
-  border-color: #999;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .jig-view-btn.active {
-  background: #0e639c;
-  color: white;
-  border-color: #0e639c;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1e3c72;
+  border-color: rgba(255, 255, 255, 1);
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Tables Container - Flex grow to fill space */
+.jig-root > div:nth-child(2) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .jig-table-container {
   background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
 }
 
 .jig-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .jig-table thead {
-  background: #f0f0f0;
-  border-bottom: 1px solid #ddd;
+  background: linear-gradient(to right, #f5f5f5, #fafafa);
+  border-bottom: 2px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .jig-table thead th {
-  padding: 10px 12px;
+  padding: 12px 14px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: #555;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
 }
 
 .jig-table tbody tr {
   border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .jig-table tbody tr:hover {
@@ -96,38 +138,145 @@
 }
 
 .jig-table tbody tr.active {
-  background: #e3f2fd;
+  background: linear-gradient(to right, #e3f2fd, #f5f9ff);
+  border-left: 3px solid #1e3c72;
+  padding-left: 0;
+}
+
+.jig-table tbody tr.active td:first-child {
+  padding-left: 11px;
 }
 
 .jig-table tbody td {
-  padding: 10px 12px;
+  padding: 12px 14px;
   color: #333;
 }
 
 .jig-table tbody td:first-child {
-  font-family: 'Courier New', monospace;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
   font-weight: 500;
+  color: #1e3c72;
 }
 
 .jig-btn {
-  padding: 4px 12px;
-  min-width: 40px;
-  background: #0e639c;
+  padding: 6px 14px;
+  min-width: 45px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   color: white;
   border: none;
-  border-radius: 3px;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(30, 60, 114, 0.2);
 }
 
 .jig-btn:hover {
-  background: #1976d2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #0d2454 0%, #1a3f6f 100%);
+  box-shadow: 0 4px 8px rgba(30, 60, 114, 0.3);
+  transform: translateY(-1px);
 }
 
 .jig-btn:active {
-  background: #0d47a1;
-  transform: translateY(1px);
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(30, 60, 114, 0.2);
+}
+
+/* Scrollbar styling */
+.jig-root > div:first-child::-webkit-scrollbar {
+  width: 6px;
+}
+
+.jig-root > div:first-child::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.jig-root > div:first-child::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.jig-root > div:first-child::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.jig-root > div:nth-child(2)::-webkit-scrollbar {
+  width: 6px;
+}
+
+.jig-root > div:nth-child(2)::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+.jig-root > div:nth-child(2)::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.jig-root > div:nth-child(2)::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Responsive adjustments */
+@media (max-height: 600px) {
+  .jig-view-grid {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .jig-view-btn {
+    padding: 10px 8px;
+    font-size: 10px;
+  }
+
+  .jig-header {
+    padding: 16px;
+    gap: 6px;
+  }
+
+  .jig-header span:first-child {
+    font-size: 14px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .jig-root > div:nth-child(2) {
+    background: #2a2a2a;
+  }
+
+  .jig-table-container {
+    background: #333;
+    border-color: #444;
+  }
+
+  .jig-table thead {
+    background: #404040;
+    border-bottom-color: #555;
+  }
+
+  .jig-table thead th {
+    color: #aaa;
+  }
+
+  .jig-table tbody tr:hover {
+    background: #3a3a3a;
+  }
+
+  .jig-table tbody tr.active {
+    background: linear-gradient(to right, #1a3a5a, #2a4a6a);
+  }
+
+  .jig-table tbody td {
+    color: #ccc;
+  }
+
+  .jig-table tbody td:first-child {
+    color: #90caf9;
+  }
+
+  .jig-table tbody tr {
+    border-bottom-color: #404040;
+  }
 }

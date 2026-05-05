@@ -478,78 +478,86 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
 
   return (
     <div className="jig-root">
-      <div className="jig-header">
-        <span>{modelName}</span>
-        <span className="jig-subtitle">JIG Drawing</span>
+      {/* Left Sidebar */}
+      <div>
+        <div className="jig-header">
+          <span>{modelName}</span>
+          <span className="jig-subtitle">JIG Drawing</span>
+        </div>
+
+        <div className="jig-view-grid">
+          {([1, 2, 3, 4, 5, 6, 7, 8] as ViewIndex[]).map(v => (
+            <button
+              key={v}
+              className={`jig-view-btn${activeView === v ? ' active' : ''}`}
+              onClick={() => handleViewClick(v)}
+            >
+              {VIEW_LABELS[v]}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="jig-view-grid">
-        {([1, 2, 3, 4, 5, 6, 7, 8] as ViewIndex[]).map(v => (
-          <button
-            key={v}
-            className={`jig-view-btn${activeView === v ? ' active' : ''}`}
-            onClick={() => handleViewClick(v)}
-          >
-            {VIEW_LABELS[v]}
+      {/* Right Content Area */}
+      <div>
+        {(activeView === 2 || activeView === 3 || activeView === 4 || activeView === 5 || activeView === 6 || activeView === 8) && (
+          <div className="jig-table-container">
+            <table className="jig-table">
+              <thead><tr><th>Part Number</th><th>QTY</th></tr></thead>
+              <tbody>
+                {bomRows.map(r => (
+                  <tr key={r.pn}><td>{r.pn}</td><td>{r.qty}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {(activeView === 3 || activeView === 5) && (
+          <div className="jig-table-container">
+            <table className="jig-table">
+              <thead><tr><th>RTW</th><th>QTY</th></tr></thead>
+              <tbody>
+                {rtwRows.map(r => (
+                  <tr key={r.label} className={selectedRTWLabel === r.label ? 'active' : ''}>
+                    <td>{r.label}</td>
+                    <td>
+                      <button className="jig-btn" onClick={() => handleRTWSelect(r.label, r.ids)}>
+                        {r.qty}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {(activeView === 4 || activeView === 6) && barSelectionRows.length > 0 && (
+          <div className="jig-table-container">
+            <table className="jig-table">
+              <thead><tr><th>Bar</th><th>QTY</th></tr></thead>
+              <tbody>
+                {barSelectionRows.map(r => (
+                  <tr key={r.label} className={selectedRTWLabel === r.label ? 'active' : ''}>
+                    <td>{r.label}</td>
+                    <td>
+                      <button className="jig-btn" onClick={() => handleBarSelect(r.label, r.ids)}>
+                        {r.qty}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div style={{ padding: '16px', textAlign: 'center' }}>
+          <button className="jig-btn" onClick={handleClearAll} style={{ width: '100%' }}>
+            Clear All
           </button>
-        ))}
-      </div>
-
-      {(activeView === 2 || activeView === 3 || activeView === 4 || activeView === 5 || activeView === 6 || activeView === 8) && (
-        <div className="jig-table-container">
-          <table className="jig-table">
-            <thead><tr><th>Part Number</th><th>QTY</th></tr></thead>
-            <tbody>
-              {bomRows.map(r => (
-                <tr key={r.pn}><td>{r.pn}</td><td>{r.qty}</td></tr>
-              ))}
-            </tbody>
-          </table>
         </div>
-      )}
-
-      {(activeView === 3 || activeView === 5) && (
-        <div className="jig-table-container">
-          <table className="jig-table">
-            <thead><tr><th>RTW</th><th>QTY</th></tr></thead>
-            <tbody>
-              {rtwRows.map(r => (
-                <tr key={r.label} className={selectedRTWLabel === r.label ? 'active' : ''}>
-                  <td>{r.label}</td>
-                  <td>
-                    <button className="jig-btn" onClick={() => handleRTWSelect(r.label, r.ids)}>
-                      {r.qty}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {(activeView === 4 || activeView === 6) && barSelectionRows.length > 0 && (
-        <div className="jig-table-container">
-          <table className="jig-table">
-            <thead><tr><th>Bar</th><th>QTY</th></tr></thead>
-            <tbody>
-              {barSelectionRows.map(r => (
-                <tr key={r.label} className={selectedRTWLabel === r.label ? 'active' : ''}>
-                  <td>{r.label}</td>
-                  <td>
-                    <button className="jig-btn" onClick={() => handleBarSelect(r.label, r.ids)}>
-                      {r.qty}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div className="jig-footer">
-        <button className="jig-clear-btn" onClick={handleClearAll}>Clear All</button>
       </div>
     </div>
   );
