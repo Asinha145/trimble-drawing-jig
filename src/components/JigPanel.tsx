@@ -10,6 +10,7 @@ import {
   buildVLBDimensions,
   buildHSBDimension,
   buildView4VerticalBarDimensions,
+  buildView6VerticalBarDimensions,
   isVLBFamily,
   isHSBAssemblyFamily,
   isRebarFamily,
@@ -295,6 +296,15 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
           const ends = barEnds(reb.bbox);
           const parentRtw = rtwById.get(reb.rtwChildOf!);
           if (parentRtw) await annotateAt(ends.max.x, ends.max.y, ends.max.z, shortLabel(parentRtw.partNumber));
+        }
+
+        // Add View 6 horizontal bar dimensions (from closest end to datum → closest vertical bar center)
+        if (data.datumX !== undefined) {
+          const dims = buildView6VerticalBarDimensions(data, data.datumX);
+          for (const dim of dims) {
+            await addDim(dim.startX, dim.startY, dim.startZ, dim.endX, dim.endY, dim.endZ);
+          }
+          console.log('[JigPanel] View 6: Added', dims.length, 'horizontal bar dimensions');
         }
         break;
       }

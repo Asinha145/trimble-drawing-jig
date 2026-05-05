@@ -97,18 +97,47 @@ export interface JigData {
   datumX?: number;  // computed datum reference (min X for 'left', max X for 'right')
 }
 
+// Helper: race against a timeout
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T | null> => {
+  let timeoutHandle: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<null>(resolve => {
+    timeoutHandle = setTimeout(() => {
+      console.warn(`[JIG] TIMEOUT after ${timeoutMs}ms on ${label}`);
+      resolve(null);
+    }, timeoutMs);
+  });
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    return result;
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+};
+
 export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<JigData> => {
   console.log('[JIG] ── getJigObjects START ─────────────────────');
 
   // ── Step 1: model ID ────────────────────────────────────────────────────────
   console.log('[JIG] Step 1: resolving modelID...');
-  const modelID = await GetModelID(API);
+  const modelID = await withTimeout(GetModelID(API), 10000, 'GetModelID') as string | null;
+  if (!modelID) {
+    console.error('[JIG] Step 1: FAILED - modelID timeout or error');
+    return { modelID: '', objects: [], rtwById: new Map(), boundingBox: undefined, datumValue: undefined, datumX: undefined };
+  }
   console.log('[JIG] Step 1: modelID =', modelID);
 
   // ── Step 2: object list ─────────────────────────────────────────────────────
   console.log('[JIG] Step 2: fetching object list...');
-  const objectListArray = await API.viewer.getObjects();
-  const rawList = objectListArray[0].objects as Array<{ id: number }>;
+  const objectListArray = await withTimeout(Promise.resolve(API.viewer.getObjects()), 10000, 'getObjects') as any;
+  if (!objectListArray) {
+    console.error('[JIG] Step 2: FAILED - getObjects timeout');
+    return { modelID, objects: [], rtwById: new Map(), boundingBox: undefined, datumValue: undefined, datumX: undefined };
+  }
+  const rawList = objectListArray[0]?.objects as Array<{ id: number }>;
+  if (!rawList) {
+    console.error('[JIG] Step 2: FAILED - no objects in result');
+    return { modelID, objects: [], rtwById: new Map(), boundingBox: undefined, datumValue: undefined, datumX: undefined };
+  }
   console.log('[JIG] Step 2: total objects =', rawList.length,
     '| id type sample =', typeof rawList[0]?.id,
     '| first id =', rawList[0]?.id);
@@ -122,8 +151,8 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
     const obj = rawList[i];
     if (i % 10 === 0) console.log(`[JIG] Step 3: progress ${i}/${rawList.length}`);
     try {
-      const propsArr = await API.viewer.getObjectProperties(modelID, [obj.id]);
-      const bbArr = await API.viewer.getObjectBoundingBoxes(modelID, [obj.id]);
+      const propsArr = await withTimeout(Promise.resolve(API.viewer.getObjectProperties(modelID, [obj.id])), 2000, `getObjectProperties[${i}]`);
+      const bbArr = await withTimeout(Promise.resolve(API.viewer.getObjectBoundingBoxes(modelID, [obj.id])), 2000, `getObjectBoundingBoxes[${i}]`);
       const props = propsArr?.[0]?.properties ?? [];
 
       // One-time debug: log all available psets for first object to diagnose CATIA / non-SW exports
@@ -659,7 +688,7 @@ export const buildHSBDimension = (
 };
 
 // View 4: Vertical bars → measurements from bar bottom to center of bottommost horizontal bar
-// For each bar mark: up to 2 dimensions (closest to datum side, and farthest away)
+// For each bar mark: 1 dimension (closest to datum side)
 export const buildView4VerticalBarDimensions = (
   data: JigData,
   datumX: number  // datum reference (min X for 'left', max X for 'right')
@@ -712,33 +741,26 @@ export const buildView4VerticalBarDimensions = (
     });
   }
 
-  // ── create up to 2 dimensions per bar mark (closest to datum, and farthest) ─
+  // ── create 1 dimension per bar mark (closest to datum) ────────────────────────
   const segments: DimSegment[] = [];
 
   for (const [barMark, bars] of barsByMark) {
-    // Take closest to datum (index 0) and farthest (index -1)
-    const indicesToUse = [0]; // Always include closest
-    if (bars.length > 1) {
-      indicesToUse.push(bars.length - 1); // Add farthest if exists
-    }
+    // Use only the closest bar to datum
+    const vertBar = bars[0];
+    if (!vertBar.bbox) continue;
 
-    for (const idx of indicesToUse) {
-      const vertBar = bars[idx];
-      if (!vertBar.bbox) continue;
+    const vertBarCogX = (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2 * 1000;
+    const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
+    const vertBarBottomZ = vertBar.bbox.min.z * 1000;
 
-      const vertBarCogX = (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2 * 1000;
-      const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
-      const vertBarBottomZ = vertBar.bbox.min.z * 1000;
-
-      segments.push({
-        startX: vertBarCogX,
-        startY: vertBarCogY,
-        startZ: vertBarBottomZ,
-        endX: horizCogX,
-        endY: horizCogY,
-        endZ: horizCogZ,
-      });
-    }
+    segments.push({
+      startX: vertBarCogX,
+      startY: vertBarCogY,
+      startZ: vertBarBottomZ,
+      endX: horizCogX,
+      endY: horizCogY,
+      endZ: horizCogZ,
+    });
   }
 
   return segments;
@@ -748,4 +770,97 @@ export const buildView4VerticalBarDimensions = (
 const extractBarMark = (partNumber: string): string => {
   const parts = partNumber.split('-');
   return parts[parts.length - 1] || partNumber;
+};
+
+// View 6: Horizontal bars → measurements from closest end of rebar to datum side → closest vertical bar center
+// For each bar mark: 1 dimension from rebar end (closest to datum) to center of closest vertical bar
+export const buildView6VerticalBarDimensions = (
+  data: JigData,
+  datumX: number  // datum reference (min X for 'left', max X for 'right')
+): DimSegment[] => {
+  const { objects } = data;
+
+  // ── identify vertical and horizontal bars ──────────────────────────────────
+  const verticalBars = objects.filter(o =>
+    isRebarFamily(o.family) && o.bbox && (o.isVertical || (o.rtwChildOf != null && isHSBAssemblyFamily(data.rtwById.get(o.rtwChildOf)?.rtwFamily)))
+  );
+
+  const horizontalBars = objects.filter(o =>
+    isRebarFamily(o.family) && o.bbox && !o.isVertical && !verticalBars.includes(o)
+  );
+
+  if (!verticalBars.length || !horizontalBars.length) return [];
+
+  // ── find closest vertical bar to datum ─────────────────────────────────────
+  let closestVertBar: typeof objects[0] | null = null;
+  let minVertDist = Infinity;
+  for (const vBar of verticalBars) {
+    if (!vBar.bbox) continue;
+    const vBarCenterX = (vBar.bbox.min.x + vBar.bbox.max.x) / 2;
+    const distToDatum = Math.abs(vBarCenterX - datumX);
+    if (distToDatum < minVertDist) {
+      minVertDist = distToDatum;
+      closestVertBar = vBar;
+    }
+  }
+
+  if (!closestVertBar || !closestVertBar.bbox) return [];
+
+  const vertCogX = (closestVertBar.bbox.min.x + closestVertBar.bbox.max.x) / 2 * 1000;
+  const vertCogY = (closestVertBar.bbox.min.y + closestVertBar.bbox.max.y) / 2 * 1000;
+  const vertCogZ = (closestVertBar.bbox.min.z + closestVertBar.bbox.max.z) / 2 * 1000;
+
+  // ── group horizontal bars by mark, sorted by distance from datum ────────────
+  const barsByMark = new Map<string, typeof horizontalBars>();
+  for (const bar of horizontalBars) {
+    const mark = extractBarMark(bar.partNumber);
+    if (!barsByMark.has(mark)) {
+      barsByMark.set(mark, []);
+    }
+    barsByMark.get(mark)!.push(bar);
+  }
+
+  // Sort each mark's bars by distance from datum (closest first)
+  for (const [_, bars] of barsByMark) {
+    bars.sort((a, b) => {
+      const distA = Math.abs((a.bbox!.min.x + a.bbox!.max.x) / 2 - datumX);
+      const distB = Math.abs((b.bbox!.min.x + b.bbox!.max.x) / 2 - datumX);
+      return distA - distB;
+    });
+  }
+
+  // ── create dimension for each bar mark ──────────────────────────────────────
+  const segments: DimSegment[] = [];
+
+  for (const [barMark, bars] of barsByMark) {
+    // Use closest to datum
+    const horizBar = bars[0];
+    if (!horizBar.bbox) continue;
+
+    // Find the end of the horizontal bar closest to datum
+    const barMinX = horizBar.bbox.min.x;
+    const barMaxX = horizBar.bbox.max.x;
+    const barCenterX = (barMinX + barMaxX) / 2;
+
+    // Determine which end is closest to datum
+    const distToMinX = Math.abs(barMinX - datumX);
+    const distToMaxX = Math.abs(barMaxX - datumX);
+    const closestEndX = distToMinX < distToMaxX ? barMinX : barMaxX;
+
+    const horizEndX = closestEndX * 1000;
+    const horizCogY = (horizBar.bbox.min.y + horizBar.bbox.max.y) / 2 * 1000;
+    const horizCogZ = (horizBar.bbox.min.z + horizBar.bbox.max.z) / 2 * 1000;
+
+    // Dimension: from closest end of horizontal bar → center of vertical bar
+    segments.push({
+      startX: horizEndX,
+      startY: horizCogY,
+      startZ: horizCogZ,
+      endX: vertCogX,
+      endY: vertCogY,
+      endZ: vertCogZ,
+    });
+  }
+
+  return segments;
 };
