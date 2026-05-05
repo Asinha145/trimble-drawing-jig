@@ -657,11 +657,13 @@ export const buildVLBDimensions = (
   return segments;
 };
 
-// View 5: HLBU/HLCU/HLBL only — from REB.bbox.min.x to nearest edge of closest STR
+// View 5: HLBU/HLCU/HLBL only — datum-aware dimension from REB end (closest to datum) to closest vertical STR
 export const buildHSBDimension = (
   rebBbox: AABB,
-  strChildren: JigObject[]
+  strChildren: JigObject[],
+  datumX: number
 ): DimSegment | null => {
+  // Filter vertical STRs only
   const strs = strChildren.filter(s => s.family === 'STR' && s.bbox && (() => {
     const b = s.bbox!;
     const dx = Math.abs(b.max.x - b.min.x);
@@ -671,20 +673,38 @@ export const buildHSBDimension = (
   })());
   if (!strs.length) return null;
 
-  const rebMinX = rebBbox.min.x * 1000;
-  const cogY    = ((rebBbox.min.y + rebBbox.max.y) / 2) * 1000;
-  const cogZ    = ((rebBbox.min.z + rebBbox.max.z) / 2) * 1000;
+  const cogY = ((rebBbox.min.y + rebBbox.max.y) / 2) * 1000;
+  const cogZ = ((rebBbox.min.z + rebBbox.max.z) / 2) * 1000;
 
-  let closestEdgeX = Infinity;
+  // Determine REB end closest to datum
+  const rebMinX = rebBbox.min.x;
+  const rebMaxX = rebBbox.max.x;
+  const distToMinX = Math.abs(rebMinX - datumX);
+  const distToMaxX = Math.abs(rebMaxX - datumX);
+  const rebEndX = (distToMinX < distToMaxX ? rebMinX : rebMaxX) * 1000;
+
+  // Find closest STR to datum
+  let closestStr: JigObject | null = null;
+  let minStrDist = Infinity;
   for (const str of strs) {
-    const minX = str.bbox!.min.x * 1000;
-    const maxX = str.bbox!.max.x * 1000;
-    const edge = Math.abs(minX - rebMinX) < Math.abs(maxX - rebMinX) ? minX : maxX;
-    if (Math.abs(edge - rebMinX) < Math.abs(closestEdgeX - rebMinX)) closestEdgeX = edge;
+    const strCenterX = (str.bbox!.min.x + str.bbox!.max.x) / 2;
+    const dist = Math.abs(strCenterX - datumX);
+    if (dist < minStrDist) {
+      minStrDist = dist;
+      closestStr = str;
+    }
   }
 
-  if (!isFinite(closestEdgeX)) return null;
-  return { startX: rebMinX, startY: cogY, startZ: cogZ, endX: closestEdgeX, endY: cogY, endZ: cogZ };
+  if (!closestStr || !closestStr.bbox) return null;
+
+  // Find closest edge of that STR to the datum
+  const strMinX = closestStr.bbox.min.x * 1000;
+  const strMaxX = closestStr.bbox.max.x * 1000;
+  const strDatumMinX = Math.abs(closestStr.bbox.min.x - datumX);
+  const strDatumMaxX = Math.abs(closestStr.bbox.max.x - datumX);
+  const strEdgeX = strDatumMinX < strDatumMaxX ? strMinX : strMaxX;
+
+  return { startX: rebEndX, startY: cogY, startZ: cogZ, endX: strEdgeX, endY: cogY, endZ: cogZ };
 };
 
 // View 4: Vertical bars → vertical measurements only (pure Z direction)
