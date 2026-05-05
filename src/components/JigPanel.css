@@ -1,22 +1,12 @@
 .jig-root {
   display: flex;
+  flex-direction: column;
   height: 100%;
+  width: 290px;
   background: #f5f5f5;
   font-family: system-ui, -apple-system, sans-serif;
   color: #333;
-}
-
-/* Left Sidebar */
-.jig-root > div:first-child {
-  display: flex;
-  flex-direction: column;
-  width: 280px;
-  height: 100%;
-  background: #e8e8e8;
-  color: #333;
-  border-right: 1px solid #ccc;
   overflow-y: auto;
-  flex-shrink: 0;
 }
 
 .jig-header {
@@ -26,6 +16,7 @@
   padding: 16px;
   border-bottom: 1px solid #ccc;
   flex-shrink: 0;
+  background: #e8e8e8;
 }
 
 .jig-header span:first-child {
@@ -50,6 +41,8 @@
   gap: 8px;
   padding: 12px;
   flex-shrink: 0;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
 }
 
 .jig-view-btn {
@@ -79,23 +72,32 @@
 }
 
 /* Tables Container */
-.jig-root > div:nth-child(2) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-width: 0;
-}
-
 .jig-table-container {
   background: white;
   border: 1px solid #ccc;
+  border-top: none;
   overflow: hidden;
-  flex-shrink: 1;
-  min-height: 0;
+  flex-shrink: 0;
+  margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.jig-table-container::-webkit-scrollbar {
+  width: 5px;
+}
+
+.jig-table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.jig-table-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.jig-table-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .jig-table {
@@ -113,7 +115,7 @@
 
 .jig-table thead th {
   padding: 6px 8px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   color: #333;
   border: 1px solid #ccc;
@@ -138,18 +140,21 @@
   padding: 6px 8px;
   color: #333;
   border: 1px solid #e0e0e0;
+  text-align: center;
 }
 
 .jig-table tbody td:first-child {
   font-family: 'Courier New', monospace;
   font-weight: 500;
   color: #0078d4;
+  text-align: center;
 }
 
 .jig-btn {
   display: inline-block;
   width: auto;
-  padding: 6px 12px;
+  min-width: 60px;
+  padding: 6px 8px;
   background-color: #0078d4;
   color: #fff;
   border: 1px solid #0078d4;
@@ -173,48 +178,34 @@
   transform: scale(0.98);
 }
 
-/* Scrollbar styling */
-.jig-root > div:first-child::-webkit-scrollbar,
-.jig-root > div:nth-child(2)::-webkit-scrollbar {
+/* Footer */
+.jig-footer {
+  padding: 12px;
+  border-top: 1px solid #ccc;
+  background: #e8e8e8;
+  flex-shrink: 0;
+}
+
+.jig-footer .jig-btn {
+  width: 100%;
+}
+
+/* Scrollbar for entire panel */
+.jig-root::-webkit-scrollbar {
   width: 6px;
 }
 
-.jig-root > div:first-child::-webkit-scrollbar-track,
-.jig-root > div:nth-child(2)::-webkit-scrollbar-track {
+.jig-root::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
 
-.jig-root > div:first-child::-webkit-scrollbar-thumb,
-.jig-root > div:nth-child(2)::-webkit-scrollbar-thumb {
+.jig-root::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 3px;
 }
 
-.jig-root > div:first-child::-webkit-scrollbar-thumb:hover,
-.jig-root > div:nth-child(2)::-webkit-scrollbar-thumb:hover {
+.jig-root::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-/* Responsive */
-@media (max-height: 600px) {
-  .jig-view-grid {
-    padding: 8px;
-    gap: 6px;
-  }
-
-  .jig-view-btn {
-    padding: 8px 6px;
-    font-size: 9px;
-  }
-
-  .jig-header {
-    padding: 12px;
-    gap: 4px;
-  }
-
-  .jig-header span:first-child {
-    font-size: 12px;
-  }
 }
 
 /* Dark mode */
@@ -223,14 +214,11 @@
     background: #2a2a2a;
   }
 
-  .jig-root > div:first-child {
+  .jig-header,
+  .jig-view-grid,
+  .jig-footer {
     background: #333;
-    color: #e0e0e0;
-    border-right-color: #444;
-  }
-
-  .jig-header {
-    border-bottom-color: #444;
+    border-color: #444;
   }
 
   .jig-header span:first-child {
@@ -255,10 +243,6 @@
   .jig-view-btn.active {
     background: #0078d4;
     color: white;
-  }
-
-  .jig-root > div:nth-child(2) {
-    background: #2a2a2a;
   }
 
   .jig-table-container {
