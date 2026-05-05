@@ -186,18 +186,44 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
     const children = getRTWChildren(rtwId, data.objects);
     const rebChildren = children.filter(c => c.family === 'REB' || c.family === 'REJ' || c.family === 'RB2');
     const strChildren = children.filter(c => c.family === 'STR');
+    const rtwLabel = shortLabel(rtw.partNumber);
 
-    // Annotate REB children at bar start (no RTW label)
+    // Determine which end is closer/farther from datum
+    const datumX = data.datumX ?? 0;
+    let barClosestEnd = { x: 0, y: 0, z: 0 };
+    let barFarthestEnd = { x: 0, y: 0, z: 0 };
+
+    if (rtw.bbox) {
+      const ends = barEnds(rtw.bbox);
+      const distMin = Math.abs(ends.min.x - datumX);
+      const distMax = Math.abs(ends.max.x - datumX);
+      barClosestEnd = distMin < distMax ? ends.min : ends.max;
+      barFarthestEnd = distMin < distMax ? ends.max : ends.min;
+    }
+
+    // Annotate REB children at farthest end from datum
     for (const reb of rebChildren) {
       if (!reb.bbox) continue;
       const ends = barEnds(reb.bbox);
-      await annotateAt(ends.min.x, ends.min.y, ends.min.z, shortLabel(reb.partNumber));
+      const distMin = Math.abs(ends.min.x - datumX);
+      const distMax = Math.abs(ends.max.x - datumX);
+      const farthestEnd = distMin > distMax ? ends.min : ends.max;
+      await annotateAt(farthestEnd.x, farthestEnd.y, farthestEnd.z, shortLabel(reb.partNumber));
     }
-    // Annotate STR children at bar start
+
+    // Annotate STR children at farthest end from datum
     for (const str of strChildren) {
       if (!str.bbox) continue;
       const ends = barEnds(str.bbox);
-      await annotateAt(ends.min.x, ends.min.y, ends.min.z, str.partNumber);
+      const distMin = Math.abs(ends.min.x - datumX);
+      const distMax = Math.abs(ends.max.x - datumX);
+      const farthestEnd = distMin > distMax ? ends.min : ends.max;
+      await annotateAt(farthestEnd.x, farthestEnd.y, farthestEnd.z, str.partNumber);
+    }
+
+    // Annotate RTW at closest end to datum (always shown)
+    if (rtw.bbox) {
+      await annotateAt(barClosestEnd.x, barClosestEnd.y, barClosestEnd.z, rtwLabel);
     }
     if (isVLBFamily(rtw.rtwFamily) && strChildren.length && rtw.bbox) {
       const segs = buildVLBDimensions(rtw.bbox, strChildren);
@@ -255,24 +281,47 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
       }
 
       case 5: {
-        // Annotate all HSB RTW assemblies + their REB children at bar start
+        // Annotate all HSB RTW assemblies + their REB children (datum-aware)
         const hsbRTWs = objects.filter(o => o.family === 'RTW' && isHSBAssemblyFamily(o.rtwFamily));
+        const datumX = data.datumX ?? 0;
+
         for (const rtw of hsbRTWs) {
           const children = getRTWChildren(rtw.id, objects);
           const rebChildren = children.filter(c => c.family === 'REB' || c.family === 'REJ' || c.family === 'RB2');
           const strChildren = children.filter(c => c.family === 'STR');
+          const rtwLabel = shortLabel(rtw.partNumber);
 
+          // Determine which RTW assembly end is closer/farther from datum
+          let rtwClosestEnd = { x: 0, y: 0, z: 0 };
+          if (rtw.bbox) {
+            const ends = barEnds(rtw.bbox);
+            const distMin = Math.abs(ends.min.x - datumX);
+            const distMax = Math.abs(ends.max.x - datumX);
+            rtwClosestEnd = distMin < distMax ? ends.min : ends.max;
+          }
+
+          // Annotate REB children at farthest end from datum
           for (const reb of rebChildren) {
             if (!reb.bbox) continue;
             const ends = barEnds(reb.bbox);
-            await annotateAt(ends.min.x, ends.min.y, ends.min.z, shortLabel(reb.partNumber));
+            const distMin = Math.abs(ends.min.x - datumX);
+            const distMax = Math.abs(ends.max.x - datumX);
+            const farthestEnd = distMin > distMax ? ends.min : ends.max;
+            await annotateAt(farthestEnd.x, farthestEnd.y, farthestEnd.z, shortLabel(reb.partNumber));
           }
 
+          // Annotate STR children at farthest end from datum
           for (const str of strChildren) {
             if (!str.bbox) continue;
             const ends = barEnds(str.bbox);
-            await annotateAt(ends.min.x, ends.min.y, ends.min.z, str.partNumber);
+            const distMin = Math.abs(ends.min.x - datumX);
+            const distMax = Math.abs(ends.max.x - datumX);
+            const farthestEnd = distMin > distMax ? ends.min : ends.max;
+            await annotateAt(farthestEnd.x, farthestEnd.y, farthestEnd.z, str.partNumber);
           }
+
+          // Annotate RTW at closest end to datum (always shown)
+          await annotateAt(rtwClosestEnd.x, rtwClosestEnd.y, rtwClosestEnd.z, rtwLabel);
 
           // HSB dimension (HLBU/HLBL/HLCU only)
           if (isHSBDimFamily(rtw.rtwFamily) && rebChildren.length && rebChildren[0].bbox && data.datumX !== undefined) {
