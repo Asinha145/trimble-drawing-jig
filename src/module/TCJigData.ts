@@ -771,10 +771,8 @@ const extractBarMark = (partNumber: string): string => {
   return parts[parts.length - 1] || partNumber;
 };
 
-// View 6: Horizontal bars → horizontal direction then diagonal to vertical bar center
-// For each bar mark: 2 segments
-//   1) Horizontal: from bar end (closest to datum) → align with vertical bar X
-//   2) Diagonal: from aligned point → vertical bar center
+// View 6: Horizontal bars → pure horizontal dimensions only (2D horizontal plane, X direction only)
+// For each bar mark: 1 dimension from bar end (closest to datum) → vertical bar center X position
 export const buildView6VerticalBarDimensions = (
   data: JigData,
   datumX: number  // datum reference (min X for 'left', max X for 'right')
@@ -808,8 +806,6 @@ export const buildView6VerticalBarDimensions = (
   if (!closestVertBar || !closestVertBar.bbox) return [];
 
   const vertCogX = (closestVertBar.bbox.min.x + closestVertBar.bbox.max.x) / 2 * 1000;
-  const vertCogY = (closestVertBar.bbox.min.y + closestVertBar.bbox.max.y) / 2 * 1000;
-  const vertCogZ = (closestVertBar.bbox.min.z + closestVertBar.bbox.max.z) / 2 * 1000;
 
   // ── group horizontal bars by mark, sorted by distance from datum ────────────
   const barsByMark = new Map<string, typeof horizontalBars>();
@@ -830,7 +826,7 @@ export const buildView6VerticalBarDimensions = (
     });
   }
 
-  // ── create 2-segment dimensions for each bar mark ──────────────────────────
+  // ── create pure horizontal dimensions for each bar mark (2D horizontal plane) ─
   const segments: DimSegment[] = [];
 
   for (const [barMark, bars] of barsByMark) {
@@ -851,24 +847,14 @@ export const buildView6VerticalBarDimensions = (
     const horizCogY = (horizBar.bbox.min.y + horizBar.bbox.max.y) / 2 * 1000;
     const horizCogZ = (horizBar.bbox.min.z + horizBar.bbox.max.z) / 2 * 1000;
 
-    // Segment 1: Horizontal direction (X only) from bar end to align with vertical bar
+    // Pure horizontal dimension: only X changes, Y and Z stay same (2D horizontal plane)
     segments.push({
       startX: horizEndX,
       startY: horizCogY,
       startZ: horizCogZ,
       endX: vertCogX,
-      endY: horizCogY,  // Keep Y same (horizontal direction)
-      endZ: horizCogZ,  // Keep Z same (horizontal direction)
-    });
-
-    // Segment 2: Diagonal from aligned point to vertical bar center
-    segments.push({
-      startX: vertCogX,
-      startY: horizCogY,
-      startZ: horizCogZ,
-      endX: vertCogX,
-      endY: vertCogY,   // Move in Y
-      endZ: vertCogZ,   // Move in Z (diagonal)
+      endY: horizCogY,  // Keep Y same
+      endZ: horizCogZ,  // Keep Z same
     });
   }
 
