@@ -491,7 +491,7 @@ export const buildRTWFocusGroups = (
     if (o.family === 'OTHER') continue;
     if (o.family === 'RTW' && familyCheck(o.rtwFamily)) {
       const focused = focusedRTWIds.has(o.id);
-      const colour = hotPink && focused ? HOT_PINK : withAlpha(RTW_COLOURS[o.rtwFamily!], focused ? 255 : 51);
+      const colour = hotPink && focused ? HOT_PINK : withAlpha(RTW_COLOURS[o.rtwFamily!], focused ? 255 : 242);
       add(o.id, colour, true);
       continue;
     }
