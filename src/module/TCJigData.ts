@@ -26,30 +26,31 @@ export interface MeasurementMarkup {
 
 const ANNOTATION_RED = { r: 255, g: 0, b: 0, a: 255 };
 
-async function getAllObjectIds(modelId: string, parentIds: string[] = []): Promise<string[]> {
-  const objectIds: string[] = [];
+async function getAllObjectIds(modelId: string): Promise<number[]> {
+  const objectIds: number[] = [];
   try {
-    const children = await API.viewer.getHierarchyChildren(modelId, parentIds);
-    if (!children || children.length === 0) return objectIds;
+    const objectListArray = await API.viewer.getObjects();
+    if (!objectListArray || !objectListArray[0]?.objects) return objectIds;
 
-    for (const child of children) {
-      objectIds.push(child.id);
-      const nestedIds = await getAllObjectIds(modelId, [child.id]);
-      objectIds.push(...nestedIds);
+    for (const obj of objectListArray[0].objects) {
+      objectIds.push(obj.id);
     }
   } catch (error) {
-    console.warn("Error traversing hierarchy:", error);
+    console.warn("Error retrieving objects:", error);
   }
   return objectIds;
 }
 
 export async function getJigObjects(modelId: string): Promise<JigData | null> {
   try {
-    const objectIds = await getAllObjectIds(modelId);
-    if (!objectIds || objectIds.length === 0) {
-      console.warn("No objects found in model");
+    // Get all entities using getObjects
+    const objectListArray = await API.viewer.getObjects();
+    if (!objectListArray || !objectListArray[0]?.objects || objectListArray[0].objects.length === 0) {
+      console.warn("No entities found in model");
       return null;
     }
+
+    const objectIds = objectListArray[0].objects.map((e: any) => e.id);
     if (objectIds.length === 0) return null;
 
     // Get bounding boxes for all objects
@@ -141,8 +142,8 @@ export async function buildView4VerticalBarDimensions(
   try {
     const objectIds = await getAllObjectIds(modelId);
     if (!objectIds || objectIds.length === 0) return measurements;
-    const verticalBars: Map<string, { id: string; minZ: number; maxZ: number; cogX: number; cogY: number; cogZ: number }> = new Map();
-    const horizontalBars: { id: string; cogX: number; cogY: number; cogZ: number; minZ: number; maxZ: number }[] = [];
+    const verticalBars: Map<string, { id: number; minZ: number; maxZ: number; cogX: number; cogY: number; cogZ: number }> = new Map();
+    const horizontalBars: { id: number; cogX: number; cogY: number; cogZ: number; minZ: number; maxZ: number }[] = [];
 
     // Scan all objects to classify them
     for (const id of objectIds) {

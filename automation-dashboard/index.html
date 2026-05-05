@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trimble JIG - Automation Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 8px;
+      border-bottom: 2px solid #0ea5e9;
+    }
+
+    header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #0ea5e9;
+    }
+
+    header p {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .panel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .panel h2 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: #0ea5e9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-item {
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid #64748b;
+    }
+
+    .status-item.running {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .status-item.error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .status-item.building {
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .status-item strong {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .status-item span {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .status-item.running span {
+      color: #10b981;
+    }
+
+    .status-item.error span {
+      color: #ef4444;
+    }
+
+    .status-item.building span {
+      color: #f59e0b;
+    }
+
+    .status-item.stopped span {
+      color: #64748b;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 16px;
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #0284c7;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.danger {
+      background: #ef4444;
+    }
+
+    button.danger:hover {
+      background: #dc2626;
+    }
+
+    button.success {
+      background: #10b981;
+    }
+
+    button.success:hover {
+      background: #059669;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .console {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 12px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .console-line {
+      margin: 2px 0;
+      padding: 2px 4px;
+    }
+
+    .console-line.info { color: #94a3b8; }
+    .console-line.success { color: #10b981; }
+    .console-line.error { color: #ef4444; }
+    .console-line.warning { color: #f59e0b; }
+
+    .console-line strong {
+      color: #0ea5e9;
+      margin-right: 8px;
+    }
+
+    .links {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .link-item {
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .link-item small {
+      color: #64748b;
+      flex: 1;
+    }
+
+    .link-item a {
+      color: #0ea5e9;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .link-item a:hover {
+      text-decoration: underline;
+    }
+
+    .copy-btn {
+      background: #475569;
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    .copy-btn:hover {
+      background: #64748b;
+    }
+
+    .editor {
+      display: none;
+    }
+
+    .editor.active {
+      display: block;
+    }
+
+    .editor textarea {
+      width: 100%;
+      height: 400px;
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Monaco', monospace;
+      font-size: 12px;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+
+    .editor-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 10px;
+    }
+
+    .tab {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tab.active {
+      border-bottom-color: #0ea5e9;
+      color: #0ea5e9;
+    }
+
+    .tab:hover {
+      color: #cbd5e1;
+    }
+
+    @media (max-width: 1200px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎯 Trimble JIG - Automation Dashboard</h1>
+    <p>Local automation for digital work instructions</p>
+  </header>
+
+  <div class="container">
+    <!-- Service Control Panel -->
+    <div class="panel">
+      <h2>⚙️ Services</h2>
+
+      <div class="status-grid">
+        <div class="status-item" id="httpStatus">
+          <strong>HTTP Server</strong>
+          <span id="httpStatusText">Stopped</span>
+        </div>
+        <div class="status-item" id="tunnelStatus">
+          <strong>Tunnel</strong>
+          <span id="tunnelStatusText">Stopped</span>
+        </div>
+        <div class="status-item" id="buildStatus">
+          <strong>Build</strong>
+          <span id="buildStatusText">Idle</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button onclick="startHTTP()">Start HTTP</button>
+        <button class="danger" onclick="stopHTTP()">Stop HTTP</button>
+        <button onclick="startTunnel()">Start Tunnel</button>
+        <button class="danger" onclick="stopTunnel()">Stop Tunnel</button>
+        <button class="success" onclick="runBuild()">Build</button>
+      </div>
+
+      <div id="console" class="console"></div>
+    </div>
+
+    <!-- Quick Links & Edit Panel -->
+    <div class="panel">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('links')">Links</div>
+        <div class="tab" onclick="switchTab('editor')">Edit Files</div>
+      </div>
+
+      <!-- Links Section -->
+      <div id="links" class="links">
+        <div class="link-item">
+          <small>Manifest</small>
+          <a id="manifestLink" href="#" target="_blank">Open</a>
+          <button class="copy-btn" onclick="copyToClipboard('manifestLink')">Copy</button>
+        </div>
+        <div class="link-item">
+          <small>Trimble Connect</small>
+          <a id="trimbleLink" href="#" target="_blank">Open</a>
+          <button class="copy-btn" onclick="copyToClipboard('trimbleLink')">Copy</button>
+        </div>
+        <div class="link-item">
+          <small>Local HTTP</small>
+          <a id="localhostLink" href="http://localhost:7777" target="_blank">Open</a>
+          <button class="copy-btn" onclick="copyToClipboard('localhostLink')">Copy</button>
+        </div>
+      </div>
+
+      <!-- Editor Section -->
+      <div id="editor" class="editor">
+        <select id="fileSelect" onchange="loadFile(this.value)">
+          <option value="">Select a file...</option>
+          <option value="tc_dev_manifest.json">Manifest (tc_dev_manifest.json)</option>
+          <option value="vite.config.ts">Vite Config</option>
+          <option value="package.json">Package.json</option>
+        </select>
+        <textarea id="fileContent" placeholder="File content will appear here..."></textarea>
+        <div class="editor-controls">
+          <button class="success" onclick="saveFile()">Save</button>
+          <button onclick="loadFile(document.getElementById('fileSelect').value)">Reload</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('links').style.display = tab === 'links' ? 'block' : 'none';
+      document.getElementById('editor').classList.toggle('active', tab === 'editor');
+    }
+
+    async function updateStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // Update status indicators
+        updateStatusItem('httpStatus', data.status.httpServer);
+        updateStatusItem('tunnelStatus', data.status.tunnel);
+        updateStatusItem('buildStatus', data.status.build);
+
+        // Update logs
+        const consoleEl = document.getElementById('console');
+        consoleEl.innerHTML = data.logs.map(log => {
+          const time = log.timestamp;
+          return `<div class="console-line ${log.type}"><strong>[${log.service}]</strong> ${log.message}</div>`;
+        }).join('');
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+
+        // Update links
+        const linksRes = await fetch('/api/links');
+        const links = await linksRes.json();
+        document.getElementById('manifestLink').href = links.manifest;
+        document.getElementById('manifestLink').textContent = links.manifest;
+        document.getElementById('trimbleLink').href = links.trimble;
+        document.getElementById('trimbleLink').textContent = 'Open Project';
+        document.getElementById('localhostLink').href = links.localhost;
+      } catch (err) {
+        console.error('Status update failed:', err);
+      }
+    }
+
+    function updateStatusItem(id, status) {
+      const el = document.getElementById(id);
+      el.classList.remove('running', 'error', 'building', 'stopped');
+
+      const statusNames = {
+        'running': 'running',
+        'starting': 'building',
+        'stopping': 'building',
+        'error': 'error',
+        'building': 'building',
+        'idle': 'stopped',
+        'stopped': 'stopped'
+      };
+
+      const className = statusNames[status] || 'stopped';
+      el.classList.add(className);
+
+      const textId = id.replace('Status', 'StatusText');
+      document.getElementById(textId).textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    async function startHTTP() {
+      await fetch('/api/http-server/start', { method: 'POST' });
+      setTimeout(updateStatus, 500);
+    }
+
+    async function stopHTTP() {
+      await fetch('/api/http-server/stop', { method: 'POST' });
+      setTimeout(updateStatus, 500);
+    }
+
+    async function startTunnel() {
+      await fetch('/api/tunnel/start', { method: 'POST' });
+      setTimeout(updateStatus, 500);
+    }
+
+    async function stopTunnel() {
+      await fetch('/api/tunnel/stop', { method: 'POST' });
+      setTimeout(updateStatus, 500);
+    }
+
+    async function runBuild() {
+      await fetch('/api/build', { method: 'POST' });
+      setTimeout(updateStatus, 500);
+    }
+
+    async function loadFile(filename) {
+      if (!filename) return;
+      try {
+        const res = await fetch(`/api/file/${filename}`);
+        const data = await res.json();
+        document.getElementById('fileContent').value = data.content;
+      } catch (err) {
+        alert('Failed to load file: ' + err.message);
+      }
+    }
+
+    async function saveFile() {
+      const filename = document.getElementById('fileSelect').value;
+      const content = document.getElementById('fileContent').value;
+
+      if (!filename) {
+        alert('Select a file first');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/file/${filename}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await res.json();
+        alert('File saved!');
+        updateStatus();
+      } catch (err) {
+        alert('Failed to save: ' + err.message);
+      }
+    }
+
+    function copyToClipboard(elementId) {
+      const link = document.getElementById(elementId);
+      const text = link.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = orig, 1500);
+      });
+    }
+
+    // Initial load and polling
+    updateStatus();
+    setInterval(updateStatus, 2000);
+  </script>
+</body>
+</html>

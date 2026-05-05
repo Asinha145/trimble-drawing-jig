@@ -25,14 +25,21 @@ function App() {
   const [spacerColours, setSpacerColours] = useState<{ [key: number]: { r: number; g: number; b: number; a: number } }>({});
 
 useEffect(() => {
+  console.log("🔵 App.tsx: Initializing...");
   ConnectViewer();
 
   setTimeout(async function () {
     try {
+      console.log("🔵 App.tsx: Getting model ID...");
       const id = await GetModelID(API);
+      console.log("🔵 App.tsx: Got model ID:", id);
+      console.log("🔵 App.tsx: Model name:", modelName);
+
       setModelID(id);
       const sliceIndex = modelName[5] === "-" ? 5 : 6;
+
       if (modelName.includes("VWS")) {
+        console.log("🟢 Detected: Vertical Weld Station");
         await API.extension.requestFocus();
         setModelName(modelName.slice(0, 6));
         setStation_type("Vertical Weld Station");
@@ -43,6 +50,7 @@ useEffect(() => {
         setOmittedStringers(await getOmittedStringers(API, "Vertical Weld Station"));
       }
       else if (modelName.includes("HWS")) {
+        console.log("🟢 Detected: Horizontal Weld Station");
         await API.extension.requestFocus();
 
         setModelName(modelName.slice(0, sliceIndex));
@@ -72,13 +80,16 @@ useEffect(() => {
       }
       else {
         // Default to JIG Drawing Tool
+        console.log("🟡 Defaulting to: JIG Drawing Tool (no VWS/HWS detected)");
         await API.extension.requestFocus();
         setStation_type("JIG Drawing Tool");
       }
 
+      console.log("🟢 App.tsx: Loading complete, station_type set");
       setLoading(false);
     } catch (error) {
-      console.error("Error initializing app:", error);
+      console.error("❌ Error initializing app:", error);
+      console.log("🟡 Falling back to JIG Drawing Tool");
       setStation_type("JIG Drawing Tool");
       setLoading(false);
     }

@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "automation": "node automation.js"
   },
   "dependencies": {
     "antd": "^5.27.6",
+    "express": "^4.22.1",
     "react": "^19.1.1",
     "react-data-table-component": "^7.7.0",
     "react-dom": "^19.1.1",

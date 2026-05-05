@@ -1,6 +1,6 @@
 {
     "title": "ARMF",
-    "url": "https://b0605f08.trimble-jig.pages.dev/index.html",
+    "url": "http://localhost:5173/index.html",
     "enabled": true,
     "type": "page"
 }
