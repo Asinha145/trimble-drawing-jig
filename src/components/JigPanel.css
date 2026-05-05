@@ -12,24 +12,13 @@
   flex-direction: column;
   width: 280px;
   height: 100%;
-  background: linear-gradient(180deg, #0f3460 0%, #16213e 50%, #0f1620 100%);
+  background: linear-gradient(180deg, #0f3460 0%, #16213e 50%, #0f1620 100%),
+              radial-gradient(circle at 20% 50%, rgba(0, 200, 255, 0.08) 0%, transparent 50%);
   color: white;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 2px solid rgba(0, 200, 255, 0.2);
   overflow-y: auto;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
-  position: relative;
-}
-
-.jig-root > div:first-child::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 280px;
-  height: 100%;
-  background: radial-gradient(circle at 20% 50%, rgba(0, 200, 255, 0.1) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25), inset -2px 0 10px rgba(0, 200, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .jig-header {
@@ -39,8 +28,6 @@
   padding: 24px 20px;
   border-bottom: 1px solid rgba(0, 200, 255, 0.2);
   flex-shrink: 0;
-  position: relative;
-  z-index: 1;
 }
 
 .jig-header span:first-child {
@@ -48,12 +35,9 @@
   font-weight: 800;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #fff;
+  color: #00d4ff;
   line-height: 1.2;
-  background: linear-gradient(135deg, #00c8ff 0%, #00e5ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.4);
 }
 
 .jig-subtitle {
@@ -71,8 +55,6 @@
   gap: 10px;
   padding: 16px;
   flex-shrink: 0;
-  position: relative;
-  z-index: 1;
 }
 
 .jig-view-btn {
@@ -117,6 +99,7 @@
   padding: 20px;
   overflow-y: auto;
   overflow-x: hidden;
+  min-width: 0;
 }
 
 .jig-table-container {
@@ -125,8 +108,9 @@
   border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 20px rgba(0, 200, 255, 0.05);
-  flex-shrink: 0;
+  flex-shrink: 1;
   transition: all 0.3s ease;
+  min-height: 0;
 }
 
 .jig-table-container:hover {
