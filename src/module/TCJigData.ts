@@ -28,27 +28,29 @@ const ANNOTATION_RED = { r: 255, g: 0, b: 0, a: 255 };
 
 export async function getJigObjects(modelId: string): Promise<JigData | null> {
   try {
-    // Get all objects in the model
-    const models = await API.model.getModels();
-    const model = models.find((m: any) => m.versionId === modelId);
-    if (!model) return null;
-
-    // Get bounding box of the entire model
+    // Get bounding box of the entire model using hierarchy
     const allEntities = await API.viewer.getHierarchy(modelId);
-    if (!allEntities || allEntities.length === 0) return null;
+    if (!allEntities || allEntities.length === 0) {
+      console.warn("No entities found in model");
+      return null;
+    }
 
     const objectIds = allEntities.map((e: any) => e.id);
     if (objectIds.length === 0) return null;
 
+    // Get bounding boxes for all objects
     const boundingBoxes = await API.viewer.getObjectBoundingBoxes(modelId, objectIds);
-    if (!boundingBoxes || boundingBoxes.length === 0) return null;
+    if (!boundingBoxes || boundingBoxes.length === 0) {
+      console.warn("No bounding boxes found");
+      return null;
+    }
 
     // Calculate overall bounding box
     let minX = Infinity, minY = Infinity, minZ = Infinity;
     let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
     for (const bb of boundingBoxes as any[]) {
-      if (bb.boundingBox) {
+      if (bb && bb.boundingBox) {
         minX = Math.min(minX, bb.boundingBox.min.x);
         minY = Math.min(minY, bb.boundingBox.min.y);
         minZ = Math.min(minZ, bb.boundingBox.min.z);
@@ -67,7 +69,7 @@ export async function getJigObjects(modelId: string): Promise<JigData | null> {
     let datumValue = "left";
     let datumX = boundingBox.min.x;
 
-    for (const id of objectIds.slice(0, 10)) { // Check first 10 objects for performance
+    for (const id of objectIds.slice(0, 20)) { // Check first 20 objects for performance
       try {
         const props = await API.viewer.getObjectProperties(modelId, [id]);
         if (props && props[0]?.properties) {
@@ -77,6 +79,7 @@ export async function getJigObjects(modelId: string): Promise<JigData | null> {
                 if (customProp.name?.includes("JigDatum")) {
                   datumValue = customProp.value?.toLowerCase() || "left";
                   datumX = datumValue === "right" ? boundingBox.max.x : boundingBox.min.x;
+                  console.log("Found JigDatum:", datumValue);
                   break;
                 }
               }
