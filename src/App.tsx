@@ -87,6 +87,8 @@ useEffect(() => {
         console.log("🟡 Defaulting to: JIG Drawing Tool (no VWS/HWS detected)");
         await API.extension.requestFocus();
         setStation_type("JIG Drawing Tool");
+        setModelName(modelName.slice(0, sliceIndex));
+        console.log("🔵 App.tsx: Set modelName for JIG to:", modelName.slice(0, sliceIndex));
       }
 
       // Calculate bounding box for the entire model
