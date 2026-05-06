@@ -536,7 +536,7 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
   return (
     <div className="jig-root">
       <div className="jig-header">
-        <span>{modelName}</span>
+        <span className="jig-model-name">{modelName || 'Loading...'}</span>
         <span className="jig-subtitle">JIG Drawing</span>
       </div>
 

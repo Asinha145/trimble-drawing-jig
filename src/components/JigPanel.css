@@ -27,6 +27,21 @@
   box-sizing: border-box;
 }
 
+.jig-model-name {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #000;
+  background: transparent;
+  padding: 10px 0px;
+  text-align: center;
+  border: none;
+  border-radius: 0px;
+  margin: 0;
+  letter-spacing: 1px;
+  display: block;
+}
+
 .jig-header span:first-child {
   font-size: 14px;
   font-weight: 600;
@@ -44,11 +59,11 @@
   display: none;
 }
 
-/* View Grid (cmollart style - centered) */
+/* View Grid (cmollart style - 2-column grid) */
 .jig-view-grid {
   width: fit-content;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 5px;
   padding: 0px 20px;
   margin: 0 auto 5px auto;
@@ -56,7 +71,6 @@
   background: transparent;
   border: none;
   box-sizing: border-box;
-  align-items: center;
 }
 
 .jig-view-btn {
