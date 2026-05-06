@@ -17,6 +17,7 @@ export interface JigObject {
   scribeText?: string;
   bbox?: AABB;
   isVertical?: boolean;
+  rebarLength?: number; // length in mm from IFC properties (e.g., bim2cam:Rebar:Length)
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
 
   // ── Step 3: props + bbox per object ────────────────────────────────────────
   console.log('[JIG] Step 3: fetching props + bbox for each object...');
-  const raw: Array<{ id: number; partNumber: string; scribeText: string; bbox: AABB | null }> = [];
+  const raw: Array<{ id: number; partNumber: string; scribeText: string; bbox: AABB | null; rebarLength?: number }> = [];
   let emptyPartCount = 0;
   let debugLogged = false;
   for (let i = 0; i < rawList.length; i++) {
@@ -182,11 +183,15 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
       }
 
       if (!partNumber) emptyPartCount++;
+      const rebarLengthStr = getPropValue(props, 'SOLIDWORKS Custom Properties', 'bim2cam:Rebar:Length');
+      const rebarLength = rebarLengthStr ? parseFloat(rebarLengthStr) : undefined;
+
       raw.push({
         id: obj.id,
         partNumber,
         scribeText: getPropValue(props, 'SOLIDWORKS Custom Properties', 'bim2cam:Scribe text'),
         bbox: bbArr?.[0]?.boundingBox ?? null,
+        rebarLength,
       });
     } catch (err) {
       console.warn('[JIG] Step 3: ERROR on object', obj.id, err);
@@ -241,6 +246,7 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
       scribeText: r.scribeText || undefined,
       bbox: r.bbox ?? undefined,
       isVertical: isRebar && r.bbox ? isVerticalBar(r.bbox) : undefined,
+      rebarLength: r.rebarLength,
     };
   });
 
@@ -769,7 +775,14 @@ export const buildView4VerticalBarDimensions = (
 
     const vertBarCogX = (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2 * 1000;
     const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
-    const vertBarBottomZ = vertBar.bbox.min.z * 1000;
+
+    // Use rebarLength property if available (accurate fabrication length), otherwise fall back to bbox.min.z
+    let vertBarBottomZ = vertBar.bbox.min.z * 1000;
+    if (vertBar.rebarLength !== undefined) {
+      // rebarLength is in mm; calculate actual bar bottom by subtracting length from top
+      vertBarBottomZ = (vertBar.bbox.max.z - vertBar.rebarLength / 1000) * 1000;
+      console.log(`[JIG] View4: using rebarLength=${vertBar.rebarLength}mm for ${vertBar.partNumber}, bottomZ=${vertBarBottomZ}`);
+    }
 
     // Pure vertical dimension: same X,Y from bottom to horizontal bar level
     segments.push({
