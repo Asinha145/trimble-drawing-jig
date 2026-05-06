@@ -18,6 +18,9 @@ export interface JigObject {
   bbox?: AABB;
   isVertical?: boolean;
   rebarLength?: number; // length in mm from IFC properties (e.g., bim2cam:Rebar:Length)
+  cogX?: number; // center of gravity X from CalculatedGeometryValues (in meters)
+  cogY?: number; // center of gravity Y from CalculatedGeometryValues (in meters)
+  cogZ?: number; // center of gravity Z from CalculatedGeometryValues (in meters)
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -145,7 +148,7 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
 
   // ── Step 3: props + bbox per object ────────────────────────────────────────
   console.log('[JIG] Step 3: fetching props + bbox for each object...');
-  const raw: Array<{ id: number; partNumber: string; scribeText: string; bbox: AABB | null; rebarLength?: number }> = [];
+  const raw: Array<{ id: number; partNumber: string; scribeText: string; bbox: AABB | null; rebarLength?: number; cogX?: number; cogY?: number; cogZ?: number }> = [];
   let emptyPartCount = 0;
   let debugLogged = false;
   for (let i = 0; i < rawList.length; i++) {
@@ -186,12 +189,23 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
       const rebarLengthStr = getPropValue(props, 'SOLIDWORKS Custom Properties', 'bim2cam:Rebar:Length');
       const rebarLength = rebarLengthStr ? parseFloat(rebarLengthStr) : undefined;
 
+      // Extract COG from CalculatedGeometryValues
+      const cogXStr = getPropValue(props, 'CalculatedGeometryValues', 'CenterOfGravityX');
+      const cogYStr = getPropValue(props, 'CalculatedGeometryValues', 'CenterOfGravityY');
+      const cogZStr = getPropValue(props, 'CalculatedGeometryValues', 'CenterOfGravityZ');
+      const cogX = cogXStr ? parseFloat(cogXStr) / 1000 : undefined; // convert mm to meters
+      const cogY = cogYStr ? parseFloat(cogYStr) / 1000 : undefined;
+      const cogZ = cogZStr ? parseFloat(cogZStr) / 1000 : undefined;
+
       raw.push({
         id: obj.id,
         partNumber,
         scribeText: getPropValue(props, 'SOLIDWORKS Custom Properties', 'bim2cam:Scribe text'),
         bbox: bbArr?.[0]?.boundingBox ?? null,
         rebarLength,
+        cogX,
+        cogY,
+        cogZ,
       });
     } catch (err) {
       console.warn('[JIG] Step 3: ERROR on object', obj.id, err);
@@ -247,6 +261,9 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
       bbox: r.bbox ?? undefined,
       isVertical: isRebar && r.bbox ? isVerticalBar(r.bbox) : undefined,
       rebarLength: r.rebarLength,
+      cogX: r.cogX,
+      cogY: r.cogY,
+      cogZ: r.cogZ,
     };
   });
 
@@ -908,7 +925,7 @@ export const buildView6VerticalBarDimensions = (
 };
 
 // View 9: Combined COG for all visible components (except SZN, PAL, PLT)
-// Returns COG position and vertical + horizontal dimensions from fixed end (datum reference)
+// Uses pre-calculated COG from CalculatedGeometryValues properties
 export const buildView9COGDimensions = (
   data: JigData,
   datumX: number
@@ -921,54 +938,40 @@ export const buildView9COGDimensions = (
 } | null => {
   const { objects } = data;
 
-  // ── Filter objects: exclude SZN, PAL, PLT ────────────────────────────────────
-  const visibleObjects = objects.filter(o =>
-    o.family !== 'SZN' && o.family !== 'PAL' && o.family !== 'PLT' && o.family !== 'OTHER' && o.bbox
+  // ── Filter objects with COG: exclude SZN, PAL, PLT, and objects without COG ────
+  const objectsWithCOG = objects.filter(o =>
+    o.family !== 'SZN' && o.family !== 'PAL' && o.family !== 'PLT' &&
+    o.family !== 'OTHER' && o.bbox && o.cogX !== undefined && o.cogY !== undefined && o.cogZ !== undefined
   );
 
-  if (visibleObjects.length === 0) return null;
+  if (objectsWithCOG.length === 0) return null;
 
-  // ── Calculate combined COG (weighted by volume) ────────────────────────────────
-  let totalVolume = 0;
-  let weightedSumX = 0;
-  let weightedSumY = 0;
-  let weightedSumZ = 0;
-
-  for (const obj of visibleObjects) {
-    if (!obj.bbox) continue;
-    const dx = Math.abs(obj.bbox.max.x - obj.bbox.min.x);
-    const dy = Math.abs(obj.bbox.max.y - obj.bbox.min.y);
-    const dz = Math.abs(obj.bbox.max.z - obj.bbox.min.z);
-    const volume = dx * dy * dz;
-
-    const centerX = (obj.bbox.min.x + obj.bbox.max.x) / 2;
-    const centerY = (obj.bbox.min.y + obj.bbox.max.y) / 2;
-    const centerZ = (obj.bbox.min.z + obj.bbox.max.z) / 2;
-
-    weightedSumX += centerX * volume;
-    weightedSumY += centerY * volume;
-    weightedSumZ += centerZ * volume;
-    totalVolume += volume;
+  // ── Calculate average COG from all visible component COGs ──────────────────────
+  let sumX = 0, sumY = 0, sumZ = 0;
+  for (const obj of objectsWithCOG) {
+    if (obj.cogX !== undefined) sumX += obj.cogX;
+    if (obj.cogY !== undefined) sumY += obj.cogY;
+    if (obj.cogZ !== undefined) sumZ += obj.cogZ;
   }
 
-  if (totalVolume === 0) return null;
+  const avgCogX = sumX / objectsWithCOG.length;
+  const avgCogY = sumY / objectsWithCOG.length;
+  const avgCogZ = sumZ / objectsWithCOG.length;
 
-  const cogX = (weightedSumX / totalVolume) * 1000;
-  const cogY = (weightedSumY / totalVolume) * 1000;
-  const cogZ = (weightedSumZ / totalVolume) * 1000;
+  const cogX = avgCogX * 1000;
+  const cogY = avgCogY * 1000;
+  const cogZ = avgCogZ * 1000;
 
-  console.log(`[JIG] View9: Combined COG at (${cogX.toFixed(1)}, ${cogY.toFixed(1)}, ${cogZ.toFixed(1)})`);
+  console.log(`[JIG] View9: Combined COG (from ${objectsWithCOG.length} objects) at (${cogX.toFixed(1)}, ${cogY.toFixed(1)}, ${cogZ.toFixed(1)})`);
 
   // ── Get bounding box of all visible objects ────────────────────────────────────
-  let globalMinX = Infinity, globalMaxX = -Infinity;
-  let globalMinZ = Infinity, globalMaxZ = -Infinity;
+  let globalMinX = Infinity;
+  let globalMinZ = Infinity;
 
-  for (const obj of visibleObjects) {
+  for (const obj of objectsWithCOG) {
     if (!obj.bbox) continue;
     globalMinX = Math.min(globalMinX, obj.bbox.min.x);
-    globalMaxX = Math.max(globalMaxX, obj.bbox.max.x);
     globalMinZ = Math.min(globalMinZ, obj.bbox.min.z);
-    globalMaxZ = Math.max(globalMaxZ, obj.bbox.max.z);
   }
 
   // ── Vertical dimension: from datum X at global min Z to COG ────────────────────
