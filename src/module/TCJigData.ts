@@ -938,10 +938,13 @@ export const buildView9COGDimensions = (
 } | null => {
   const { objects } = data;
 
-  // ── Filter objects with COG: exclude SZN, PAL, PLT, and objects without COG ────
+  // ── Filter objects with COG: exclude SZN, PAL, PLT, and RTW children ────
+  // Count only top-level objects (rtwChildOf === null) to prevent double-counting
+  // RTW parents and their REB/STR children in the combined COG calculation
   const objectsWithCOG = objects.filter(o =>
     o.family !== 'SZN' && o.family !== 'PAL' && o.family !== 'PLT' &&
-    o.family !== 'OTHER' && o.bbox && o.cogX !== undefined && o.cogY !== undefined && o.cogZ !== undefined
+    o.family !== 'OTHER' && o.bbox && o.cogX !== undefined && o.cogY !== undefined && o.cogZ !== undefined &&
+    !o.rtwChildOf // Exclude objects that are children of RTW assemblies
   );
 
   if (objectsWithCOG.length === 0) return null;
