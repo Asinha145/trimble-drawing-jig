@@ -11,6 +11,7 @@ import {
   buildHSBDimension,
   buildView4VerticalBarDimensions,
   buildView6VerticalBarDimensions,
+  buildView9COGDimensions,
   isVLBFamily,
   isHSBAssemblyFamily,
   isRebarFamily,
@@ -28,7 +29,7 @@ interface Props {
   modelName: string;
 }
 
-type ViewIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+type ViewIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 const VIEW_LABELS: Record<ViewIndex, string> = {
   1: '1 Normal',
@@ -39,6 +40,7 @@ const VIEW_LABELS: Record<ViewIndex, string> = {
   6: '6 Horiz Bars',
   7: '7 Soft Zone',
   8: '8 Lift Plates',
+  9: '9 COG',
 };
 
 const isHSBDimFamily = (f?: RTWFamily) => f === 'HLBU' || f === 'HLBL' || f === 'HLCU';
@@ -374,6 +376,33 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
         break;
       }
 
+      case 9: {
+        // View 9: COG - Show combined center of gravity for all components (except SZN, PAL, PLT)
+        // Add COG mark and dimensions
+        if (data.datumX !== undefined) {
+          const result = buildView9COGDimensions(data, data.datumX);
+          if (result) {
+            // Annotate COG position with "COG" label
+            await annotateAt(result.cogX, result.cogY, result.cogZ, 'COG');
+
+            // Add vertical dimension
+            if (result.vertDim) {
+              await addDim(result.vertDim.startX, result.vertDim.startY, result.vertDim.startZ,
+                          result.vertDim.endX, result.vertDim.endY, result.vertDim.endZ);
+            }
+
+            // Add horizontal dimension
+            if (result.horizDim) {
+              await addDim(result.horizDim.startX, result.horizDim.startY, result.horizDim.startZ,
+                          result.horizDim.endX, result.horizDim.endY, result.horizDim.endZ);
+            }
+
+            console.log('[JigPanel] View 9: COG marked at', result.cogX, result.cogY, result.cogZ);
+          }
+        }
+        break;
+      }
+
       // Views 1 and 7 need no annotations
     }
   };
@@ -548,7 +577,7 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
       </div>
 
       <div className="jig-view-grid">
-        {([1, 2, 3, 4, 5, 6, 7, 8] as ViewIndex[]).map(v => (
+        {([1, 2, 3, 4, 5, 6, 7, 8, 9] as ViewIndex[]).map(v => (
           <button
             key={v}
             className={`jig-view-btn${activeView === v ? ' active' : ''}`}

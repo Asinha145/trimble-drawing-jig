@@ -471,6 +471,19 @@ export const buildViewGroups = (viewIndex: number, { objects, rtwById }: JigData
         add(o.id, GREY_FULL, true);
       }
       break;
+
+    case 9: // COG - Show all components except SZN, PAL, PLT with semantic colours
+      for (const o of objects) {
+        if (o.family === 'OTHER') continue;
+        if (o.family === 'SZN' || o.family === 'PAL' || o.family === 'PLT') { add(o.id, HIDDEN, false); continue; }
+        if (o.family === 'RTW' && o.rtwFamily) { add(o.id, RTW_COLOURS[o.rtwFamily], true); continue; }
+        if (o.rtwChildOf != null) {
+          const parentRtw = rtwById.get(o.rtwChildOf);
+          if (parentRtw?.rtwFamily) { add(o.id, RTW_COLOURS[parentRtw.rtwFamily], true); continue; }
+        }
+        add(o.id, GREY_FULL, true);
+      }
+      break;
   }
 
   return Array.from(groupMap.values());
@@ -892,4 +905,91 @@ export const buildView6VerticalBarDimensions = (
   }
 
   return segments;
+};
+
+// View 9: Combined COG for all visible components (except SZN, PAL, PLT)
+// Returns COG position and vertical + horizontal dimensions from fixed end (datum reference)
+export const buildView9COGDimensions = (
+  data: JigData,
+  datumX: number
+): {
+  cogX: number;
+  cogY: number;
+  cogZ: number;
+  vertDim?: DimSegment;
+  horizDim?: DimSegment;
+} | null => {
+  const { objects } = data;
+
+  // ── Filter objects: exclude SZN, PAL, PLT ────────────────────────────────────
+  const visibleObjects = objects.filter(o =>
+    o.family !== 'SZN' && o.family !== 'PAL' && o.family !== 'PLT' && o.family !== 'OTHER' && o.bbox
+  );
+
+  if (visibleObjects.length === 0) return null;
+
+  // ── Calculate combined COG (weighted by volume) ────────────────────────────────
+  let totalVolume = 0;
+  let weightedSumX = 0;
+  let weightedSumY = 0;
+  let weightedSumZ = 0;
+
+  for (const obj of visibleObjects) {
+    if (!obj.bbox) continue;
+    const dx = Math.abs(obj.bbox.max.x - obj.bbox.min.x);
+    const dy = Math.abs(obj.bbox.max.y - obj.bbox.min.y);
+    const dz = Math.abs(obj.bbox.max.z - obj.bbox.min.z);
+    const volume = dx * dy * dz;
+
+    const centerX = (obj.bbox.min.x + obj.bbox.max.x) / 2;
+    const centerY = (obj.bbox.min.y + obj.bbox.max.y) / 2;
+    const centerZ = (obj.bbox.min.z + obj.bbox.max.z) / 2;
+
+    weightedSumX += centerX * volume;
+    weightedSumY += centerY * volume;
+    weightedSumZ += centerZ * volume;
+    totalVolume += volume;
+  }
+
+  if (totalVolume === 0) return null;
+
+  const cogX = (weightedSumX / totalVolume) * 1000;
+  const cogY = (weightedSumY / totalVolume) * 1000;
+  const cogZ = (weightedSumZ / totalVolume) * 1000;
+
+  console.log(`[JIG] View9: Combined COG at (${cogX.toFixed(1)}, ${cogY.toFixed(1)}, ${cogZ.toFixed(1)})`);
+
+  // ── Get bounding box of all visible objects ────────────────────────────────────
+  let globalMinX = Infinity, globalMaxX = -Infinity;
+  let globalMinZ = Infinity, globalMaxZ = -Infinity;
+
+  for (const obj of visibleObjects) {
+    if (!obj.bbox) continue;
+    globalMinX = Math.min(globalMinX, obj.bbox.min.x);
+    globalMaxX = Math.max(globalMaxX, obj.bbox.max.x);
+    globalMinZ = Math.min(globalMinZ, obj.bbox.min.z);
+    globalMaxZ = Math.max(globalMaxZ, obj.bbox.max.z);
+  }
+
+  // ── Vertical dimension: from datum X at global min Z to COG ────────────────────
+  const vertDim: DimSegment = {
+    startX: datumX * 1000,
+    startY: cogY,
+    startZ: globalMinZ * 1000,
+    endX: datumX * 1000,
+    endY: cogY,
+    endZ: cogZ,
+  };
+
+  // ── Horizontal dimension: from global min X to COG ───────────────────────────────
+  const horizDim: DimSegment = {
+    startX: globalMinX * 1000,
+    startY: cogY,
+    startZ: cogZ,
+    endX: cogX,
+    endY: cogY,
+    endZ: cogZ,
+  };
+
+  return { cogX, cogY, cogZ, vertDim, horizDim };
 };
