@@ -92,6 +92,13 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
         }
       }
 
+      // Fallback: if datum not found in properties, use bounding box min.x (left datum)
+      if (!data.datumX && data.boundingBox) {
+        data.datumValue = 'left';
+        data.datumX = data.boundingBox.min.x;
+        console.log(`[JigPanel] Datum: using fallback 'left' → X = ${data.datumX.toFixed(3)}`);
+      }
+
       setJigData(data);
       setLoading(false);
       API.extension.requestFocus();
