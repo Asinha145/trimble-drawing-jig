@@ -55,6 +55,9 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
     const initJigData = async () => {
       const data = await getJigObjects(API);
 
+      // Add small delay to allow parent component to set modelName
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       // Extract datum value from main JIG element properties
       if (API.viewer) {
         try {
@@ -572,7 +575,7 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
   return (
     <div className="jig-root">
       <div className="jig-header">
-        <span className="jig-model-name">{modelName || 'Loading...'}</span>
+        <span className="jig-model-name">{modelName || (loading ? 'Loading IFC...' : '—')}</span>
         <span className="jig-subtitle">JIG Drawing</span>
       </div>
 
