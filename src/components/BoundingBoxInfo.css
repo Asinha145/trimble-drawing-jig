@@ -1,23 +1,26 @@
 .bbox-info {
-  padding: 8px 12px;
-  background: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  width: fit-content;
+  padding: 0px 20px;
+  background: #ffffff;
+  border: 2px solid black;
+  border-radius: 5px;
   font-size: 11px;
-  margin: 8px 0;
+  margin: 0 auto 5px auto;
 }
 
 .bbox-label {
   font-weight: 600;
-  color: #333;
+  color: #000;
   font-size: 10px;
   text-transform: uppercase;
   margin-bottom: 4px;
+  padding-top: 8px;
 }
 
 .bbox-dimensions {
   font-family: 'Courier New', monospace;
-  color: #0078d4;
+  color: #000;
   font-size: 12px;
   font-weight: 500;
+  padding-bottom: 8px;
 }

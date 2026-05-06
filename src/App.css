@@ -1,53 +1,59 @@
-/* Force full-height and top alignment */
+/* Force full-height and top alignment (cmollart style) */
 html, body, #root, .root-wrapper {
   height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-start !important; /* vertical start */
-  align-items: flex-start !important;     /* horizontal start */
+  justify-content: flex-start !important;
+  align-items: center !important;
+  background: #ffffff !important;
 }
 
 /* Override Trimble Connect panel padding if present */
 .tc-panel-content {
   padding-top: 0 !important;
+  padding: 0 !important;
 }
 
-/* Header box */
+/* Header box (cmollart style) */
 .markNumberDiv {
-  width: fit-content; /* adjusts to text */
-  display: flex; 
-  justify-content: center; /* center text inside box */
-  border: 2px solid black;
-  border-radius: 5px;
-  margin: 0 auto 5px auto; /* center box horizontally */
-  text-align: center;
-  padding: 0px 20px;
-  line-height: 1;
-}
-
-/* Clear All button */
-.buttonDiv {
-  width: fit-content; /* adjusts to text */
+  width: fit-content;
   display: flex;
-  justify-content: center; /* horizontally center button */
+  justify-content: center;
+  border: 2px solid black;
+  border-radius: 5px;
+  margin: 0 auto 5px auto;
+  text-align: center;
+  padding: 10px 20px;
+  line-height: 1;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Clear All button (cmollart style) */
+.buttonDiv {
+  width: fit-content;
+  display: flex;
+  justify-content: center;
   padding: 0px;
-  margin: 0 auto 5px auto; /* center box horizontally */
-  margin-top: 0px;
+  margin: 0 auto 5px auto;
   border: 2px solid black;
   text-align: center;
   border-radius: 5px;
-  padding: 0px 20px;
+  padding: 8px 20px;
 }
 
-/* Table container */
+/* Table container (cmollart style) */
 .data-table-container {
-  width: 290px; /* fixed table width */
-  margin-left: 0 !important;
+  width: 290px;
+  margin-left: auto !important;
   margin-right: auto !important;
   text-align: left !important;
-  overflow-y: auto;  
+  overflow-y: auto;
+  border: 2px solid black;
+  border-radius: 5px;
+  margin-bottom: 5px !important;
 }
 
 /* WebKit scrollbar styling */
