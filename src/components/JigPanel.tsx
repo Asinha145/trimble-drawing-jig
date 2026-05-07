@@ -241,10 +241,10 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
       await annotateAt(barClosestEnd.x, barClosestEnd.y, barClosestEnd.z, rtwLabel);
     }
     if (isVLBFamily(rtw.rtwFamily) && strChildren.length && rtw.bbox) {
-      const segs = buildVLBDimensions(rtw.bbox, strChildren);
+      const segs = buildVLBDimensions(rtw, strChildren);
       for (const s of segs) await addDim(s.startX, s.startY, s.startZ, s.endX, s.endY, s.endZ);
     } else if (isHSBDimFamily(rtw.rtwFamily) && rebChildren.length && rebChildren[0].bbox && data.datumX !== undefined) {
-      const seg = buildHSBDimension(rebChildren[0].bbox, strChildren, data.datumX);
+      const seg = buildHSBDimension(rebChildren[0], strChildren, data.datumX);
       if (seg) await addDim(seg.startX, seg.startY, seg.startZ, seg.endX, seg.endY, seg.endZ);
     }
   };
@@ -340,7 +340,7 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
 
           // HSB dimension (HLBU/HLBL/HLCU only)
           if (isHSBDimFamily(rtw.rtwFamily) && rebChildren.length && rebChildren[0].bbox && data.datumX !== undefined) {
-            const seg = buildHSBDimension(rebChildren[0].bbox, strChildren, data.datumX);
+            const seg = buildHSBDimension(rebChildren[0], strChildren, data.datumX);
             if (seg) await addDim(seg.startX, seg.startY, seg.startZ, seg.endX, seg.endY, seg.endZ);
           }
         }

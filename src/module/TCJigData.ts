@@ -647,16 +647,26 @@ export interface DimSegment {
 }
 
 export const buildVLBDimensions = (
-  rtwBbox: AABB,
+  rtw: JigObject | AABB,
   strChildren: JigObject[]
 ): DimSegment[] => {
   // Stringers sit at different Z heights along the vertical bar assembly.
   // Dimensions run along Z, drawn at the assembly's right edge (max.x).
   // Adjacent stringers (gap ≤ 2 mm end-to-start) are merged into one cluster.
   // Each cluster emits one dim: from datumZ (bar bottom) to the cluster's first stringer zMin.
+
+  // Support both JigObject and raw AABB for backward compatibility
+  const rtwBbox = (rtw as any).bbox ? (rtw as any).bbox : (rtw as AABB);
   const dimX   = rtwBbox.max.x * 1000;
   const cogY   = ((rtwBbox.min.y + rtwBbox.max.y) / 2) * 1000;
-  const datumZ = rtwBbox.min.z * 1000;
+
+  // Use rebarLength if available (accurate fabrication length), otherwise use bbox
+  let datumZ = rtwBbox.min.z * 1000;
+  if ((rtw as any).rebarLength !== undefined) {
+    const rebarLength = (rtw as any).rebarLength;
+    datumZ = (rtwBbox.max.z - rebarLength / 1000) * 1000;
+    console.log(`[JIG] View3: using rebarLength=${rebarLength}mm, datumZ=${datumZ}`);
+  }
 
   const positions = strChildren
     .filter(s => s.bbox)
@@ -695,7 +705,7 @@ export const buildVLBDimensions = (
 
 // View 5: HLBU/HLCU/HLBL only — datum-aware dimension from REB end (closest to datum) to closest vertical STR
 export const buildHSBDimension = (
-  rebBbox: AABB,
+  reb: JigObject | AABB,
   strChildren: JigObject[],
   datumX: number
 ): DimSegment | null => {
@@ -709,15 +719,32 @@ export const buildHSBDimension = (
   })());
   if (!strs.length) return null;
 
+  // Support both JigObject and raw AABB for backward compatibility
+  const rebBbox = (reb as any).bbox ? (reb as any).bbox : (reb as AABB);
   const cogY = ((rebBbox.min.y + rebBbox.max.y) / 2) * 1000;
   const cogZ = ((rebBbox.min.z + rebBbox.max.z) / 2) * 1000;
 
   // Determine REB end closest to datum
   const rebMinX = rebBbox.min.x;
   const rebMaxX = rebBbox.max.x;
-  const distToMinX = Math.abs(rebMinX - datumX);
-  const distToMaxX = Math.abs(rebMaxX - datumX);
-  const rebEndX = (distToMinX < distToMaxX ? rebMinX : rebMaxX) * 1000;
+
+  // Use rebarLength if available (accurate fabrication length), otherwise use bbox
+  let rebEndX: number;
+  if ((reb as any).rebarLength !== undefined) {
+    const rebarLength = (reb as any).rebarLength;
+    const rebCenterX = (rebMinX + rebMaxX) / 2;
+    const rebHalfLength = (rebarLength / 1000) / 2;
+    const rebStart = rebCenterX - rebHalfLength;
+    const rebEnd = rebCenterX + rebHalfLength;
+    const distToStart = Math.abs(rebStart - datumX);
+    const distToEnd = Math.abs(rebEnd - datumX);
+    rebEndX = (distToStart < distToEnd ? rebStart : rebEnd) * 1000;
+    console.log(`[JIG] View5: using rebarLength=${rebarLength}mm for ${(reb as any).partNumber}, rebEndX=${rebEndX}`);
+  } else {
+    const distToMinX = Math.abs(rebMinX - datumX);
+    const distToMaxX = Math.abs(rebMaxX - datumX);
+    rebEndX = (distToMinX < distToMaxX ? rebMinX : rebMaxX) * 1000;
+  }
 
   // Find closest STR to datum
   let closestStr: JigObject | null = null;
