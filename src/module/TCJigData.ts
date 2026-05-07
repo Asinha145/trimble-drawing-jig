@@ -901,10 +901,26 @@ export const buildView6VerticalBarDimensions = (
     const barMinX = horizBar.bbox.min.x;
     const barMaxX = horizBar.bbox.max.x;
 
-    // Determine which end is closest to datum
-    const distToMinX = Math.abs(barMinX - datumX);
-    const distToMaxX = Math.abs(barMaxX - datumX);
-    const closestEndX = distToMinX < distToMaxX ? barMinX : barMaxX;
+    // Use rebarLength property if available (accurate fabrication length), otherwise fall back to bbox
+    let closestEndX = barMinX;
+    if (horizBar.rebarLength !== undefined) {
+      // rebarLength is in mm; calculate actual bar extent from the center
+      const barCenterX = (barMinX + barMaxX) / 2;
+      const barHalfLength = (horizBar.rebarLength / 1000) / 2;
+      const barStart = barCenterX - barHalfLength;
+      const barEnd = barCenterX + barHalfLength;
+
+      // Determine which end is closest to datum
+      const distToStart = Math.abs(barStart - datumX);
+      const distToEnd = Math.abs(barEnd - datumX);
+      closestEndX = distToStart < distToEnd ? barStart : barEnd;
+      console.log(`[JIG] View6: using rebarLength=${horizBar.rebarLength}mm for ${horizBar.partNumber}, closestEndX=${closestEndX}`);
+    } else {
+      // Determine which end is closest to datum (using bbox)
+      const distToMinX = Math.abs(barMinX - datumX);
+      const distToMaxX = Math.abs(barMaxX - datumX);
+      closestEndX = distToMinX < distToMaxX ? barMinX : barMaxX;
+    }
 
     const horizEndX = closestEndX * 1000;
     const horizCogY = (horizBar.bbox.min.y + horizBar.bbox.max.y) / 2 * 1000;
