@@ -923,37 +923,28 @@ export const buildView6VerticalBarDimensions = (
     const horizBar = bars[0];
     if (!horizBar.bbox) continue;
 
-    // View 6: Assembly-to-component — if bar is child of RTW, measure from RTW base
-    let closestEndX: number;
-    if (horizBar.rtwChildOf != null) {
-      const parentRtw = data.rtwById.get(horizBar.rtwChildOf);
-      if (parentRtw?.bbox) {
-        closestEndX = parentRtw.bbox.min.x;
-        console.log(`[JIG] View6: bar ${horizBar.partNumber} is child of RTW, measuring from RTW base at X=${closestEndX}`);
-      } else {
-        // Fallback to bar position if parent RTW bbox unavailable
-        closestEndX = horizBar.bbox.min.x;
-      }
-    } else {
-      // Standalone bar — measure from bar position (individual component)
-      const barMinX = horizBar.bbox.min.x;
-      const barMaxX = horizBar.bbox.max.x;
+    // View 6: bbox includes couplers, use rebarLength for actual bar position
+    const barMinX = horizBar.bbox.min.x;
+    const barMaxX = horizBar.bbox.max.x;
 
-      // Use rebarLength if available for accurate bar position
-      if (horizBar.rebarLength !== undefined) {
-        const barCenterX = (barMinX + barMaxX) / 2;
-        const barHalfLength = (horizBar.rebarLength / 1000) / 2;
-        const barStart = barCenterX - barHalfLength;
-        const barEnd = barCenterX + barHalfLength;
-        const distToStart = Math.abs(barStart - datumX);
-        const distToEnd = Math.abs(barEnd - datumX);
-        closestEndX = distToStart < distToEnd ? barStart : barEnd;
-        console.log(`[JIG] View6: standalone bar using rebarLength=${horizBar.rebarLength}mm, closestEndX=${closestEndX}`);
-      } else {
-        const distToMinX = Math.abs(barMinX - datumX);
-        const distToMaxX = Math.abs(barMaxX - datumX);
-        closestEndX = distToMinX < distToMaxX ? barMinX : barMaxX;
-      }
+    let closestEndX: number;
+    if (horizBar.rebarLength !== undefined) {
+      // rebarLength is accurate bar length; calculate actual bar extent from the center
+      const barCenterX = (barMinX + barMaxX) / 2;
+      const barHalfLength = (horizBar.rebarLength / 1000) / 2;
+      const barStart = barCenterX - barHalfLength;
+      const barEnd = barCenterX + barHalfLength;
+
+      // Determine which end is closest to datum
+      const distToStart = Math.abs(barStart - datumX);
+      const distToEnd = Math.abs(barEnd - datumX);
+      closestEndX = distToStart < distToEnd ? barStart : barEnd;
+      console.log(`[JIG] View6: bbox includes coupler, using rebarLength=${horizBar.rebarLength}mm for ${horizBar.partNumber}, closestEndX=${closestEndX}`);
+    } else {
+      // Determine which end is closest to datum (using bbox)
+      const distToMinX = Math.abs(barMinX - datumX);
+      const distToMaxX = Math.abs(barMaxX - datumX);
+      closestEndX = distToMinX < distToMaxX ? barMinX : barMaxX;
     }
 
     const horizEndX = closestEndX * 1000;
