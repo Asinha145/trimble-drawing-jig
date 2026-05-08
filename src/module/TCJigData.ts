@@ -659,8 +659,14 @@ export const buildVLBDimensions = (
   const rtwBbox = (rtw as any).bbox ? (rtw as any).bbox : (rtw as AABB);
   const dimX   = rtwBbox.max.x * 1000;
   const cogY   = ((rtwBbox.min.y + rtwBbox.max.y) / 2) * 1000;
-  // View 3: dimension from base of bridging (RTW min.z includes coupler) to stringers
-  const datumZ = rtwBbox.min.z * 1000;
+
+  // View 3: RTW bbox includes coupler, so use rebarLength to find actual REB start position
+  let datumZ = rtwBbox.min.z * 1000;
+  if ((rtw as any).rebarLength !== undefined) {
+    const rebarLength = (rtw as any).rebarLength;
+    datumZ = (rtwBbox.max.z - rebarLength / 1000) * 1000;
+    console.log(`[JIG] View3: RTW includes coupler, using rebarLength=${rebarLength}mm to get actual REB start, datumZ=${datumZ}`);
+  }
 
   const positions = strChildren
     .filter(s => s.bbox)
@@ -697,9 +703,9 @@ export const buildVLBDimensions = (
   return segments;
 };
 
-// View 5: HLBU/HLCU/HLBL only — assembly-to-component: from HSB RTW base to closest vertical STR
+// View 5: HLBU/HLCU/HLBL only — REB includes coupler in bbox, use rebarLength for actual REB position
 export const buildHSBDimension = (
-  rtwOrReb: JigObject | AABB,
+  reb: JigObject | AABB,
   strChildren: JigObject[],
   datumX: number
 ): DimSegment | null => {
@@ -714,13 +720,30 @@ export const buildHSBDimension = (
   if (!strs.length) return null;
 
   // Support both JigObject and raw AABB for backward compatibility
-  const rtwBbox = (rtwOrReb as any).bbox ? (rtwOrReb as any).bbox : (rtwOrReb as AABB);
-  const cogY = ((rtwBbox.min.y + rtwBbox.max.y) / 2) * 1000;
-  const cogZ = ((rtwBbox.min.z + rtwBbox.max.z) / 2) * 1000;
+  const rebBbox = (reb as any).bbox ? (reb as any).bbox : (reb as AABB);
+  const cogY = ((rebBbox.min.y + rebBbox.max.y) / 2) * 1000;
+  const cogZ = ((rebBbox.min.z + rebBbox.max.z) / 2) * 1000;
 
-  // View 5: Assembly-to-component — measure from HSB RTW base (min.x) to STR
-  const rtwStartX = rtwBbox.min.x * 1000;
-  console.log(`[JIG] View5: measuring from RTW base at X=${rtwStartX}, to closest STR`);
+  // View 5: REB bbox includes coupler, use rebarLength to find actual REB position
+  const rebMinX = rebBbox.min.x;
+  const rebMaxX = rebBbox.max.x;
+
+  let rebEndX: number;
+  if ((reb as any).rebarLength !== undefined) {
+    const rebarLength = (reb as any).rebarLength;
+    const rebCenterX = (rebMinX + rebMaxX) / 2;
+    const rebHalfLength = (rebarLength / 1000) / 2;
+    const rebStart = rebCenterX - rebHalfLength;
+    const rebEnd = rebCenterX + rebHalfLength;
+    const distToStart = Math.abs(rebStart - datumX);
+    const distToEnd = Math.abs(rebEnd - datumX);
+    rebEndX = (distToStart < distToEnd ? rebStart : rebEnd) * 1000;
+    console.log(`[JIG] View5: REB includes coupler, using rebarLength=${rebarLength}mm, rebEndX=${rebEndX}`);
+  } else {
+    const distToMinX = Math.abs(rebMinX - datumX);
+    const distToMaxX = Math.abs(rebMaxX - datumX);
+    rebEndX = (distToMinX < distToMaxX ? rebMinX : rebMaxX) * 1000;
+  }
 
   // Find closest STR to datum
   let closestStr: JigObject | null = null;
@@ -743,7 +766,7 @@ export const buildHSBDimension = (
   const strDatumMaxX = Math.abs(closestStr.bbox.max.x - datumX);
   const strEdgeX = strDatumMinX < strDatumMaxX ? strMinX : strMaxX;
 
-  return { startX: rtwStartX, startY: cogY, startZ: cogZ, endX: strEdgeX, endY: cogY, endZ: cogZ };
+  return { startX: rebEndX, startY: cogY, startZ: cogZ, endX: strEdgeX, endY: cogY, endZ: cogZ };
 };
 
 // View 4: Vertical bars → vertical measurements only (pure Z direction)
