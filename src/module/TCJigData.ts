@@ -777,8 +777,25 @@ export const buildHSBDimension = (
     const rebEnd = rebCenterX + rebHalfLength;
     const distToStart = Math.abs(rebStart - datumX);
     const distToEnd = Math.abs(rebEnd - datumX);
-    rebEndX = (distToStart < distToEnd ? rebStart : rebEnd) * 1000;
-    console.log(`[JIG] View5: REB includes coupler, using rebarLength=${rebarLength}mm, rebEndX=${rebEndX}`);
+
+    // Determine which end is fixed (closer to datum)
+    const isFixedAtStart = distToStart < distToEnd;
+    const fixedEndX = isFixedAtStart ? rebStart : rebEnd;
+
+    // Coupler logic: short leg is typically at the fixed end
+    // Only subtract rebarLength if coupler on short leg is MALE+BRIDGING
+    const couplerType = (reb as any).couplerType;
+    const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
+
+    if (isMaleBridging) {
+      // MALE+BRIDGING at short leg (fixed end): subtract rebarLength to skip bridging
+      rebEndX = (fixedEndX - rebarLength / 2000) * 1000;
+      console.log(`[JIG] View5: MALE+BRIDGING at short+fixed end for ${(reb as any).partNumber}, rebEndX=${rebEndX}`);
+    } else {
+      // FEMALE+BRIDGING, MALE, FEMALE, or no coupler: use normal fixed end position
+      rebEndX = fixedEndX * 1000;
+      console.log(`[JIG] View5: using fixed end for ${(reb as any).partNumber} (coupler: ${couplerType || 'none'}), rebEndX=${rebEndX}`);
+    }
   } else {
     const distToMinX = Math.abs(rebMinX - datumX);
     const distToMaxX = Math.abs(rebMaxX - datumX);
