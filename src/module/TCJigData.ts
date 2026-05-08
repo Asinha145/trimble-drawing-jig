@@ -697,9 +697,9 @@ export const buildVLBDimensions = (
   return segments;
 };
 
-// View 5: HLBU/HLCU/HLBL only — datum-aware dimension from REB end (closest to datum) to closest vertical STR
+// View 5: HLBU/HLCU/HLBL only — assembly-to-component: from HSB RTW base to closest vertical STR
 export const buildHSBDimension = (
-  reb: JigObject | AABB,
+  rtwOrReb: JigObject | AABB,
   strChildren: JigObject[],
   datumX: number
 ): DimSegment | null => {
@@ -714,31 +714,13 @@ export const buildHSBDimension = (
   if (!strs.length) return null;
 
   // Support both JigObject and raw AABB for backward compatibility
-  const rebBbox = (reb as any).bbox ? (reb as any).bbox : (reb as AABB);
-  const cogY = ((rebBbox.min.y + rebBbox.max.y) / 2) * 1000;
-  const cogZ = ((rebBbox.min.z + rebBbox.max.z) / 2) * 1000;
+  const rtwBbox = (rtwOrReb as any).bbox ? (rtwOrReb as any).bbox : (rtwOrReb as AABB);
+  const cogY = ((rtwBbox.min.y + rtwBbox.max.y) / 2) * 1000;
+  const cogZ = ((rtwBbox.min.z + rtwBbox.max.z) / 2) * 1000;
 
-  // Determine REB end closest to datum
-  const rebMinX = rebBbox.min.x;
-  const rebMaxX = rebBbox.max.x;
-
-  // Use rebarLength if available (accurate fabrication length), otherwise use bbox
-  let rebEndX: number;
-  if ((reb as any).rebarLength !== undefined) {
-    const rebarLength = (reb as any).rebarLength;
-    const rebCenterX = (rebMinX + rebMaxX) / 2;
-    const rebHalfLength = (rebarLength / 1000) / 2;
-    const rebStart = rebCenterX - rebHalfLength;
-    const rebEnd = rebCenterX + rebHalfLength;
-    const distToStart = Math.abs(rebStart - datumX);
-    const distToEnd = Math.abs(rebEnd - datumX);
-    rebEndX = (distToStart < distToEnd ? rebStart : rebEnd) * 1000;
-    console.log(`[JIG] View5: using rebarLength=${rebarLength}mm for ${(reb as any).partNumber}, rebEndX=${rebEndX}`);
-  } else {
-    const distToMinX = Math.abs(rebMinX - datumX);
-    const distToMaxX = Math.abs(rebMaxX - datumX);
-    rebEndX = (distToMinX < distToMaxX ? rebMinX : rebMaxX) * 1000;
-  }
+  // View 5: Assembly-to-component — measure from HSB RTW base (min.x) to STR
+  const rtwStartX = rtwBbox.min.x * 1000;
+  console.log(`[JIG] View5: measuring from RTW base at X=${rtwStartX}, to closest STR`);
 
   // Find closest STR to datum
   let closestStr: JigObject | null = null;
@@ -761,7 +743,7 @@ export const buildHSBDimension = (
   const strDatumMaxX = Math.abs(closestStr.bbox.max.x - datumX);
   const strEdgeX = strDatumMinX < strDatumMaxX ? strMinX : strMaxX;
 
-  return { startX: rebEndX, startY: cogY, startZ: cogZ, endX: strEdgeX, endY: cogY, endZ: cogZ };
+  return { startX: rtwStartX, startY: cogY, startZ: cogZ, endX: strEdgeX, endY: cogY, endZ: cogZ };
 };
 
 // View 4: Vertical bars → vertical measurements only (pure Z direction)
@@ -918,29 +900,37 @@ export const buildView6VerticalBarDimensions = (
     const horizBar = bars[0];
     if (!horizBar.bbox) continue;
 
-    // Find the end of the horizontal bar closest to datum
-    const barMinX = horizBar.bbox.min.x;
-    const barMaxX = horizBar.bbox.max.x;
-
-    // Use rebarLength property if available (accurate fabrication length), otherwise fall back to bbox
-    let closestEndX = barMinX;
-    if (horizBar.rebarLength !== undefined) {
-      // rebarLength is in mm; calculate actual bar extent from the center
-      const barCenterX = (barMinX + barMaxX) / 2;
-      const barHalfLength = (horizBar.rebarLength / 1000) / 2;
-      const barStart = barCenterX - barHalfLength;
-      const barEnd = barCenterX + barHalfLength;
-
-      // Determine which end is closest to datum
-      const distToStart = Math.abs(barStart - datumX);
-      const distToEnd = Math.abs(barEnd - datumX);
-      closestEndX = distToStart < distToEnd ? barStart : barEnd;
-      console.log(`[JIG] View6: using rebarLength=${horizBar.rebarLength}mm for ${horizBar.partNumber}, closestEndX=${closestEndX}`);
+    // View 6: Assembly-to-component — if bar is child of RTW, measure from RTW base
+    let closestEndX: number;
+    if (horizBar.rtwChildOf != null) {
+      const parentRtw = data.rtwById.get(horizBar.rtwChildOf);
+      if (parentRtw?.bbox) {
+        closestEndX = parentRtw.bbox.min.x;
+        console.log(`[JIG] View6: bar ${horizBar.partNumber} is child of RTW, measuring from RTW base at X=${closestEndX}`);
+      } else {
+        // Fallback to bar position if parent RTW bbox unavailable
+        closestEndX = horizBar.bbox.min.x;
+      }
     } else {
-      // Determine which end is closest to datum (using bbox)
-      const distToMinX = Math.abs(barMinX - datumX);
-      const distToMaxX = Math.abs(barMaxX - datumX);
-      closestEndX = distToMinX < distToMaxX ? barMinX : barMaxX;
+      // Standalone bar — measure from bar position (individual component)
+      const barMinX = horizBar.bbox.min.x;
+      const barMaxX = horizBar.bbox.max.x;
+
+      // Use rebarLength if available for accurate bar position
+      if (horizBar.rebarLength !== undefined) {
+        const barCenterX = (barMinX + barMaxX) / 2;
+        const barHalfLength = (horizBar.rebarLength / 1000) / 2;
+        const barStart = barCenterX - barHalfLength;
+        const barEnd = barCenterX + barHalfLength;
+        const distToStart = Math.abs(barStart - datumX);
+        const distToEnd = Math.abs(barEnd - datumX);
+        closestEndX = distToStart < distToEnd ? barStart : barEnd;
+        console.log(`[JIG] View6: standalone bar using rebarLength=${horizBar.rebarLength}mm, closestEndX=${closestEndX}`);
+      } else {
+        const distToMinX = Math.abs(barMinX - datumX);
+        const distToMaxX = Math.abs(barMaxX - datumX);
+        closestEndX = distToMinX < distToMaxX ? barMinX : barMaxX;
+      }
     }
 
     const horizEndX = closestEndX * 1000;
