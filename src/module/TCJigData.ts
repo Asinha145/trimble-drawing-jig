@@ -281,6 +281,7 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
       bbox: r.bbox ?? undefined,
       isVertical: isRebar && r.bbox ? isVerticalBar(r.bbox) : undefined,
       rebarLength: r.rebarLength,
+      couplerType: r.couplerType,
       cogX: r.cogX,
       cogY: r.cogY,
       cogZ: r.cogZ,
