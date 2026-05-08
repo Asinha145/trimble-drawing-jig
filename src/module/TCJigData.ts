@@ -673,18 +673,20 @@ export const buildVLBDimensions = (
   if (rebChildren && rebChildren.length > 0) {
     const reb = rebChildren[0];  // Get the REB child object
     if (reb.bbox) {
-      // Check coupler type: MALE+BRIDGING has coupler extending beyond REB (subtract length)
-      // FEMALE+BRIDGING coupler is at the end, use normal REB position (don't subtract)
-      const isMaleBridging = reb.couplerType && (reb.couplerType.includes('MALE') || reb.couplerType.includes('MALE+BRIDGING'));
+      // Coupler logic (positional/bridging):
+      // - MALE+BRIDGING: bridging extends beyond bar → subtract length from bbox.max
+      // - FEMALE+BRIDGING: coupler at end, no extension → use bbox.min normally
+      // - MALE or FEMALE (alone): no bridging component → use bbox.min normally
+      const isMaleBridging = reb.couplerType && reb.couplerType.includes('MALE+BRIDGING');
 
       if (isMaleBridging && reb.rebarLength !== undefined) {
-        // MALE+BRIDGING: coupler extends beyond bar, so subtract length from bbox max to get actual bar bottom
+        // MALE+BRIDGING: bridging extends beyond bar, subtract length to skip coupler
         datumZ = (reb.bbox.max.z - reb.rebarLength / 1000) * 1000;
-        console.log(`[JIG] View3: MALE coupler detected, using REB bbox - rebarLength=${reb.rebarLength}mm for ${reb.partNumber}, datumZ=${datumZ}`);
+        console.log(`[JIG] View3: MALE+BRIDGING detected, using REB bbox.max - rebarLength=${reb.rebarLength}mm for ${reb.partNumber}, datumZ=${datumZ}`);
       } else {
-        // FEMALE+BRIDGING or no coupler: use REB's bbox min.z directly (normal REB end)
+        // FEMALE+BRIDGING, MALE, FEMALE, or no coupler: use REB's bbox min.z (normal position)
         datumZ = reb.bbox.min.z * 1000;
-        console.log(`[JIG] View3: FEMALE coupler or no coupler, using REB bbox min.z for ${reb.partNumber}, datumZ=${datumZ}`);
+        console.log(`[JIG] View3: using REB bbox.min for ${reb.partNumber} (coupler: ${reb.couplerType || 'none'}), datumZ=${datumZ}`);
       }
     }
   }
