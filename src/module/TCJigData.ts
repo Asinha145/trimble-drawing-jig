@@ -648,24 +648,33 @@ export interface DimSegment {
 
 export const buildVLBDimensions = (
   rtw: JigObject | AABB,
-  strChildren: JigObject[]
+  strChildren: JigObject[],
+  rebChildren?: JigObject[]
 ): DimSegment[] => {
   // Stringers sit at different Z heights along the vertical bar assembly.
   // Dimensions run along Z, drawn at the assembly's right edge (max.x).
   // Adjacent stringers (gap ≤ 2 mm end-to-start) are merged into one cluster.
-  // Each cluster emits one dim: from datumZ (bar bottom) to the cluster's first stringer zMin.
+  // Each cluster emits one dim: from REB bottom (skipping coupler) to the cluster's first stringer zMin.
 
   // Support both JigObject and raw AABB for backward compatibility
   const rtwBbox = (rtw as any).bbox ? (rtw as any).bbox : (rtw as AABB);
   const dimX   = rtwBbox.max.x * 1000;
   const cogY   = ((rtwBbox.min.y + rtwBbox.max.y) / 2) * 1000;
 
-  // View 3: RTW bbox includes coupler, so use rebarLength to find actual REB start position
+  // View 3: Use individual REB object's bbox (not RTW's), matching View 4's approach
   let datumZ = rtwBbox.min.z * 1000;
-  if ((rtw as any).rebarLength !== undefined) {
-    const rebarLength = (rtw as any).rebarLength;
-    datumZ = (rtwBbox.max.z - rebarLength / 1000) * 1000;
-    console.log(`[JIG] View3: RTW includes coupler, using rebarLength=${rebarLength}mm to get actual REB start, datumZ=${datumZ}`);
+
+  if (rebChildren && rebChildren.length > 0) {
+    const reb = rebChildren[0];  // Get the REB child object
+    if (reb.bbox && reb.rebarLength !== undefined) {
+      // Use REB's own bbox and rebarLength to find actual bar bottom (skip coupler)
+      datumZ = (reb.bbox.max.z - reb.rebarLength / 1000) * 1000;
+      console.log(`[JIG] View3: using REB bbox + rebarLength=${reb.rebarLength}mm for ${reb.partNumber}, datumZ=${datumZ}`);
+    } else if (reb.bbox) {
+      // Fallback to REB's bbox min.z if no rebarLength
+      datumZ = reb.bbox.min.z * 1000;
+      console.log(`[JIG] View3: using REB bbox min.z for ${reb.partNumber}, datumZ=${datumZ}`);
+    }
   }
 
   const positions = strChildren
