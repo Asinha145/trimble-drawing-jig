@@ -194,6 +194,20 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
       const couplerType = getPropValue(props, 'SOLIDWORKS Custom Properties', 'IFC:Rebar:Coupler Type on Short Leg') ||
                           getPropValue(props, 'SOLIDWORKS Custom Properties', 'IFC:Rebar:Coupler Type');
 
+      // Debug: log REB objects and their available property sets
+      if (partNumber.includes('-REB-')) {
+        console.log(`[JIG] REB object ${partNumber}: pset names = ${props.map((p: any) => p.name).join(', ')}`);
+        if (couplerType) {
+          console.log(`[JIG]   → found coupler: ${couplerType}`);
+        } else {
+          console.log(`[JIG]   → NO coupler found in SOLIDWORKS Custom Properties`);
+          // Try to find coupler in other psets
+          const allProps = props.flatMap((p: any) => p.properties || []).map((p: any) => p.name);
+          const coupler = allProps.find((pn: string) => pn.toLowerCase().includes('coupler'));
+          if (coupler) console.log(`[JIG]   → BUT found property: ${coupler}`);
+        }
+      }
+
       // Extract COG from CalculatedGeometryValues
       const cogXStr = getPropValue(props, 'CalculatedGeometryValues', 'CenterOfGravityX');
       const cogYStr = getPropValue(props, 'CalculatedGeometryValues', 'CenterOfGravityY');
