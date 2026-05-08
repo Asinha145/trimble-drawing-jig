@@ -1008,11 +1008,30 @@ export const buildView6VerticalBarDimensions = (
       const barStart = barCenterX - barHalfLength;
       const barEnd = barCenterX + barHalfLength;
 
-      // Determine which end is closest to datum
+      // Determine which end is FIXED (closest to datum) vs FAR (farther from datum)
       const distToStart = Math.abs(barStart - datumX);
       const distToEnd = Math.abs(barEnd - datumX);
-      closestEndX = distToStart < distToEnd ? barStart : barEnd;
-      console.log(`[JIG] View6: bbox includes coupler, using rebarLength=${horizBar.rebarLength}mm for ${horizBar.partNumber}, closestEndX=${closestEndX}`);
+      const isFixedAtStart = distToStart < distToEnd;
+      const fixedEndX = isFixedAtStart ? barStart : barEnd;
+
+      // Determine which end is SHORT vs LONG (measured from center)
+      const isShortAtStart = Math.abs(barStart - barCenterX) <= Math.abs(barEnd - barCenterX);
+      const shortEndX = isShortAtStart ? barStart : barEnd;
+
+      // Coupler logic: only subtract if FIXED end is SHORT end AND has MALE+BRIDGING
+      const couplerType = horizBar.couplerType;
+      const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
+      const isShortAtFixed = Math.abs(shortEndX - fixedEndX) < 0.001;
+
+      if (isMaleBridging && isShortAtFixed) {
+        // SHORT end at FIXED end with MALE+BRIDGING: subtract bridging
+        closestEndX = fixedEndX - horizBar.rebarLength / 2000;
+        console.log(`[JIG] View6: SHORT@FIXED+MALE+BRIDGING for ${horizBar.partNumber}, closestEndX=${closestEndX}`);
+      } else {
+        // All other cases: use fixed end position
+        closestEndX = fixedEndX;
+        console.log(`[JIG] View6: using fixed end for ${horizBar.partNumber} (coupler: ${couplerType || 'none'}, short@fixed: ${isShortAtFixed}), closestEndX=${closestEndX}`);
+      }
     } else {
       // Determine which end is closest to datum (using bbox)
       const distToMinX = Math.abs(barMinX - datumX);
