@@ -659,14 +659,8 @@ export const buildVLBDimensions = (
   const rtwBbox = (rtw as any).bbox ? (rtw as any).bbox : (rtw as AABB);
   const dimX   = rtwBbox.max.x * 1000;
   const cogY   = ((rtwBbox.min.y + rtwBbox.max.y) / 2) * 1000;
-
-  // Use rebarLength if available (accurate fabrication length), otherwise use bbox
-  let datumZ = rtwBbox.min.z * 1000;
-  if ((rtw as any).rebarLength !== undefined) {
-    const rebarLength = (rtw as any).rebarLength;
-    datumZ = (rtwBbox.max.z - rebarLength / 1000) * 1000;
-    console.log(`[JIG] View3: using rebarLength=${rebarLength}mm, datumZ=${datumZ}`);
-  }
+  // View 3: dimension from base of bridging (RTW min.z includes coupler) to stringers
+  const datumZ = rtwBbox.min.z * 1000;
 
   const positions = strChildren
     .filter(s => s.bbox)
