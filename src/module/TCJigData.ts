@@ -679,6 +679,8 @@ export const buildVLBDimensions = (
       // - MALE or FEMALE (alone): no bridging component → use bbox.min normally
       const isMaleBridging = reb.couplerType && reb.couplerType.includes('MALE+BRIDGING');
 
+      console.log(`[JIG] View3 DEBUG: ${reb.partNumber}, coupler='${reb.couplerType}', isMaleBridging=${isMaleBridging}, rebarLength=${reb.rebarLength}, bbox.min.z=${reb.bbox.min.z}, bbox.max.z=${reb.bbox.max.z}`);
+
       if (isMaleBridging && reb.rebarLength !== undefined) {
         // MALE+BRIDGING: bridging extends beyond bar, subtract length to skip coupler
         datumZ = (reb.bbox.max.z - reb.rebarLength / 1000) * 1000;
