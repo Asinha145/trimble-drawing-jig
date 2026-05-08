@@ -773,28 +773,36 @@ export const buildHSBDimension = (
     const rebarLength = (reb as any).rebarLength;
     const rebCenterX = (rebMinX + rebMaxX) / 2;
     const rebHalfLength = (rebarLength / 1000) / 2;
-    const rebStart = rebCenterX - rebHalfLength;
-    const rebEnd = rebCenterX + rebHalfLength;
+    const rebStart = rebCenterX - rebHalfLength;  // start = center - half
+    const rebEnd = rebCenterX + rebHalfLength;    // end = center + half
     const distToStart = Math.abs(rebStart - datumX);
     const distToEnd = Math.abs(rebEnd - datumX);
 
-    // Determine which end is fixed (closer to datum)
+    // Determine which end is FIXED (closer to datum) vs FAR (farther from datum)
     const isFixedAtStart = distToStart < distToEnd;
     const fixedEndX = isFixedAtStart ? rebStart : rebEnd;
+    const farEndX = isFixedAtStart ? rebEnd : rebStart;
 
-    // Coupler logic: short leg is typically at the fixed end
-    // Only subtract rebarLength if coupler on short leg is MALE+BRIDGING
+    // Determine which end is SHORT vs LONG (measured from center)
+    // SHORT = closer to center (half length away), LONG = farther from center (half length away)
+    // Since both are equidistant from center, SHORT is the one at smaller absolute position
+    const isShortAtStart = Math.abs(rebStart - rebCenterX) <= Math.abs(rebEnd - rebCenterX);
+    const shortEndX = isShortAtStart ? rebStart : rebEnd;
+    const longEndX = isShortAtStart ? rebEnd : rebStart;
+
+    // Coupler logic: only subtract if SHORT end is at FIXED end AND has MALE+BRIDGING
     const couplerType = (reb as any).couplerType;
     const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
+    const isShortAtFixed = Math.abs(shortEndX - fixedEndX) < 0.001;
 
-    if (isMaleBridging) {
-      // MALE+BRIDGING at short leg (fixed end): subtract rebarLength to skip bridging
+    if (isMaleBridging && isShortAtFixed) {
+      // SHORT end at FIXED end with MALE+BRIDGING: subtract bridging
       rebEndX = (fixedEndX - rebarLength / 2000) * 1000;
-      console.log(`[JIG] View5: MALE+BRIDGING at short+fixed end for ${(reb as any).partNumber}, rebEndX=${rebEndX}`);
+      console.log(`[JIG] View5: SHORT@FIXED+MALE+BRIDGING for ${(reb as any).partNumber}, rebEndX=${rebEndX}`);
     } else {
-      // FEMALE+BRIDGING, MALE, FEMALE, or no coupler: use normal fixed end position
+      // All other cases: use fixed end position (ignore MALE+BRIDGING if on long end)
       rebEndX = fixedEndX * 1000;
-      console.log(`[JIG] View5: using fixed end for ${(reb as any).partNumber} (coupler: ${couplerType || 'none'}), rebEndX=${rebEndX}`);
+      console.log(`[JIG] View5: using fixed end for ${(reb as any).partNumber} (coupler: ${couplerType || 'none'}, short@fixed: ${isShortAtFixed}), rebEndX=${rebEndX}`);
     }
   } else {
     const distToMinX = Math.abs(rebMinX - datumX);
