@@ -149,7 +149,7 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
 
   // ── Step 3: props + bbox per object ────────────────────────────────────────
   console.log('[JIG] Step 3: fetching props + bbox for each object...');
-  const raw: Array<{ id: number; partNumber: string; scribeText: string; bbox: AABB | null; rebarLength?: number; cogX?: number; cogY?: number; cogZ?: number }> = [];
+  const raw: Array<{ id: number; partNumber: string; scribeText: string; bbox: AABB | null; rebarLength?: number; couplerType?: string; cogX?: number; cogY?: number; cogZ?: number }> = [];
   let emptyPartCount = 0;
   let debugLogged = false;
   for (let i = 0; i < rawList.length; i++) {
@@ -855,12 +855,20 @@ export const buildView4VerticalBarDimensions = (
     const vertBarCogX = (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2 * 1000;
     const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
 
-    // Use rebarLength property if available (accurate fabrication length), otherwise fall back to bbox.min.z
+    // Coupler logic (positional/bridging):
+    // - MALE+BRIDGING: bridging extends beyond bar → subtract length from bbox.max
+    // - FEMALE+BRIDGING: coupler at end, no extension → use bbox.min normally
+    // - MALE or FEMALE (alone): no bridging component → use bbox.min normally
     let vertBarBottomZ = vertBar.bbox.min.z * 1000;
-    if (vertBar.rebarLength !== undefined) {
-      // rebarLength is in mm; calculate actual bar bottom by subtracting length from top
+    const isMaleBridging = vertBar.couplerType && vertBar.couplerType.includes('MALE+BRIDGING');
+
+    if (isMaleBridging && vertBar.rebarLength !== undefined) {
+      // MALE+BRIDGING: bridging extends beyond bar, subtract length to skip coupler
       vertBarBottomZ = (vertBar.bbox.max.z - vertBar.rebarLength / 1000) * 1000;
-      console.log(`[JIG] View4: using rebarLength=${vertBar.rebarLength}mm for ${vertBar.partNumber}, bottomZ=${vertBarBottomZ}`);
+      console.log(`[JIG] View4: MALE+BRIDGING detected, using bbox.max - rebarLength=${vertBar.rebarLength}mm for ${vertBar.partNumber}, bottomZ=${vertBarBottomZ}`);
+    } else {
+      // FEMALE+BRIDGING, MALE, FEMALE, or no coupler: use bbox.min.z (normal position)
+      console.log(`[JIG] View4: using bbox.min for ${vertBar.partNumber} (coupler: ${vertBar.couplerType || 'none'}), bottomZ=${vertBarBottomZ}`);
     }
 
     // Pure vertical dimension: same X,Y from bottom to horizontal bar level
