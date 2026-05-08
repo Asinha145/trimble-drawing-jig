@@ -18,6 +18,7 @@ export interface JigObject {
   bbox?: AABB;
   isVertical?: boolean;
   rebarLength?: number; // length in mm from IFC properties (e.g., bim2cam:Rebar:Length)
+  couplerType?: string; // coupler type (e.g., MALE+BRIDGING, FEMALE+BRIDGING) from IFC:Rebar:Coupler Type on Short Leg
   cogX?: number; // center of gravity X from CalculatedGeometryValues (in meters)
   cogY?: number; // center of gravity Y from CalculatedGeometryValues (in meters)
   cogZ?: number; // center of gravity Z from CalculatedGeometryValues (in meters)
@@ -189,6 +190,10 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
       const rebarLengthStr = getPropValue(props, 'SOLIDWORKS Custom Properties', 'bim2cam:Rebar:Length');
       const rebarLength = rebarLengthStr ? parseFloat(rebarLengthStr) : undefined;
 
+      // Extract coupler type (IFC:Rebar:Coupler Type on Short Leg) to determine if MALE or FEMALE
+      const couplerType = getPropValue(props, 'SOLIDWORKS Custom Properties', 'IFC:Rebar:Coupler Type on Short Leg') ||
+                          getPropValue(props, 'SOLIDWORKS Custom Properties', 'IFC:Rebar:Coupler Type');
+
       // Extract COG from CalculatedGeometryValues
       const cogXStr = getPropValue(props, 'CalculatedGeometryValues', 'CenterOfGravityX');
       const cogYStr = getPropValue(props, 'CalculatedGeometryValues', 'CenterOfGravityY');
@@ -203,6 +208,7 @@ export const getJigObjects = async (API: WorkspaceAPI.WorkspaceAPI): Promise<Jig
         scribeText: getPropValue(props, 'SOLIDWORKS Custom Properties', 'bim2cam:Scribe text'),
         bbox: bbArr?.[0]?.boundingBox ?? null,
         rebarLength,
+        couplerType,
         cogX,
         cogY,
         cogZ,
@@ -666,14 +672,20 @@ export const buildVLBDimensions = (
 
   if (rebChildren && rebChildren.length > 0) {
     const reb = rebChildren[0];  // Get the REB child object
-    if (reb.bbox && reb.rebarLength !== undefined) {
-      // Use REB's own bbox and rebarLength to find actual bar bottom (skip coupler)
-      datumZ = (reb.bbox.max.z - reb.rebarLength / 1000) * 1000;
-      console.log(`[JIG] View3: using REB bbox + rebarLength=${reb.rebarLength}mm for ${reb.partNumber}, datumZ=${datumZ}`);
-    } else if (reb.bbox) {
-      // Fallback to REB's bbox min.z if no rebarLength
-      datumZ = reb.bbox.min.z * 1000;
-      console.log(`[JIG] View3: using REB bbox min.z for ${reb.partNumber}, datumZ=${datumZ}`);
+    if (reb.bbox) {
+      // Check coupler type: MALE+BRIDGING has coupler extending beyond REB (subtract length)
+      // FEMALE+BRIDGING coupler is at the end, use normal REB position (don't subtract)
+      const isMaleBridging = reb.couplerType && (reb.couplerType.includes('MALE') || reb.couplerType.includes('MALE+BRIDGING'));
+
+      if (isMaleBridging && reb.rebarLength !== undefined) {
+        // MALE+BRIDGING: coupler extends beyond bar, so subtract length from bbox max to get actual bar bottom
+        datumZ = (reb.bbox.max.z - reb.rebarLength / 1000) * 1000;
+        console.log(`[JIG] View3: MALE coupler detected, using REB bbox - rebarLength=${reb.rebarLength}mm for ${reb.partNumber}, datumZ=${datumZ}`);
+      } else {
+        // FEMALE+BRIDGING or no coupler: use REB's bbox min.z directly (normal REB end)
+        datumZ = reb.bbox.min.z * 1000;
+        console.log(`[JIG] View3: FEMALE coupler or no coupler, using REB bbox min.z for ${reb.partNumber}, datumZ=${datumZ}`);
+      }
     }
   }
 
