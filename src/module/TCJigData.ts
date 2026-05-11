@@ -5,7 +5,7 @@ import { GetModelID } from './TCFixtureTable';
 export type RGBA = { r: number; g: number; b: number; a: number };
 export type AABB = { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } };
 
-export type RTWFamily = 'VLBH' | 'VLBS' | 'VLBC' | 'HLBU' | 'HLBL' | 'HLCU' | 'MLL' | 'MLU' | 'HSB';
+export type RTWFamily = 'VLBH' | 'VLBS' | 'VLBC' | 'HLBU' | 'HLBL' | 'HLCU' | 'MLL' | 'MLU' | 'HSB' | 'MLS';
 export type ObjectFamily = 'PLT' | 'PAL' | 'SZN' | 'REB' | 'REJ' | 'RB2' | 'STR' | 'LP' | 'WRA' | 'WST' | 'RTW' | 'OTHER';
 
 export interface JigObject {
@@ -48,7 +48,7 @@ const classifyFamily = (pn: string): ObjectFamily => {
 };
 
 export const getRtwFamily = (pn: string): RTWFamily | undefined => {
-  const families: RTWFamily[] = ['VLBH', 'VLBS', 'VLBC', 'HLBU', 'HLBL', 'HLCU', 'MLL', 'MLU', 'HSB'];
+  const families: RTWFamily[] = ['VLBH', 'VLBS', 'VLBC', 'HLBU', 'HLBL', 'HLCU', 'MLL', 'MLU', 'HSB', 'MLS'];
   return families.find(f => pn.includes(f));
 };
 
@@ -74,6 +74,7 @@ export const RTW_COLOURS: Record<RTWFamily, RGBA> = {
   VLBC: { r: 255, g: 182, b: 193, a: 255 },
   HLBU: { r: 0,   g: 200, b: 0,   a: 255 },
   HLBL: { r: 255, g: 0,   b: 255, a: 255 },
+  MLS:  { r: 255, g: 255, b: 0,   a: 255 },
   HSB:  { r: 0,   g: 0,   b: 255, a: 255 },
   HLCU: { r: 128, g: 0,   b: 0,   a: 255 },
   MLL:  { r: 255, g: 255, b: 0,   a: 255 },

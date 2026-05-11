@@ -353,7 +353,10 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
           if (!reb.bbox) continue;
           const ends = barEnds(reb.bbox);
           const parentRtw = rtwById.get(reb.rtwChildOf!);
-          if (parentRtw) await annotateAt(ends.max.x, ends.max.y, ends.max.z, shortLabel(parentRtw.partNumber));
+          if (parentRtw) {
+            const label = parentRtw.rtwFamily === 'MLS' ? 'MLS' : shortLabel(parentRtw.partNumber);
+            await annotateAt(ends.max.x, ends.max.y, ends.max.z, label);
+          }
         }
 
         // Add View 6 horizontal bar dimensions (from closest end to datum → closest vertical bar center)
@@ -527,9 +530,13 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
     if (activeView === 6) {
       const map = new Map<string, number>();
       for (const o of objects.filter(o => isRebarFamily(o.family) && !o.isVertical)) {
-        const label = o.rtwChildOf != null
-          ? shortLabel(rtwById.get(o.rtwChildOf)?.partNumber ?? o.partNumber)
-          : shortLabel(o.partNumber);
+        let label: string;
+        if (o.rtwChildOf != null) {
+          const parentRtw = rtwById.get(o.rtwChildOf);
+          label = parentRtw?.rtwFamily === 'MLS' ? 'MLS' : shortLabel(parentRtw?.partNumber ?? o.partNumber);
+        } else {
+          label = shortLabel(o.partNumber);
+        }
         map.set(label, (map.get(label) ?? 0) + 1);
       }
       return Array.from(map.entries()).map(([pn, qty]) => ({ pn, qty })).sort((a, b) => a.pn.localeCompare(b.pn));
