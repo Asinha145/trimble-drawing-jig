@@ -1024,14 +1024,22 @@ export const buildView6VerticalBarDimensions = (
       const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
       const isShortAtFixed = Math.abs(shortEndX - fixedEndX) < 0.001;
 
+      console.log(`[JIG] View6 DEBUG ${horizBar.partNumber}:`);
+      console.log(`  bbox: minX=${barMinX.toFixed(4)}, maxX=${barMaxX.toFixed(4)}`);
+      console.log(`  rebarLength: ${horizBar.rebarLength}mm, barCenterX=${barCenterX.toFixed(4)}`);
+      console.log(`  barStart=${barStart.toFixed(4)}, barEnd=${barEnd.toFixed(4)}`);
+      console.log(`  datumX=${datumX.toFixed(4)}, distToStart=${distToStart.toFixed(4)}, distToEnd=${distToEnd.toFixed(4)}`);
+      console.log(`  fixedEndX=${fixedEndX.toFixed(4)}, shortEndX=${shortEndX.toFixed(4)}`);
+      console.log(`  coupler=${couplerType}, isMaleBridging=${isMaleBridging}, isShortAtFixed=${isShortAtFixed}`);
+
       if (isMaleBridging && isShortAtFixed) {
         // SHORT end at FIXED end with MALE+BRIDGING: subtract bridging
         closestEndX = fixedEndX - horizBar.rebarLength / 2000;
-        console.log(`[JIG] View6: SHORT@FIXED+MALE+BRIDGING for ${horizBar.partNumber}, closestEndX=${closestEndX}`);
+        console.log(`[JIG] View6: SHORT@FIXED+MALE+BRIDGING for ${horizBar.partNumber}, closestEndX=${closestEndX.toFixed(4)}`);
       } else {
         // All other cases: use fixed end position
         closestEndX = fixedEndX;
-        console.log(`[JIG] View6: using fixed end for ${horizBar.partNumber} (coupler: ${couplerType || 'none'}, short@fixed: ${isShortAtFixed}), closestEndX=${closestEndX}`);
+        console.log(`[JIG] View6: using fixed end for ${horizBar.partNumber}, closestEndX=${closestEndX.toFixed(4)}`);
       }
     } else {
       // Determine which end is closest to datum (using bbox)
@@ -1043,6 +1051,11 @@ export const buildView6VerticalBarDimensions = (
     const horizEndX = closestEndX * 1000;
     const horizCogY = (horizBar.bbox.min.y + horizBar.bbox.max.y) / 2 * 1000;
     const horizCogZ = (horizBar.bbox.min.z + horizBar.bbox.max.z) / 2 * 1000;
+
+    const finalDimension = Math.abs(vertCogX - horizEndX);
+    console.log(`[JIG] View6 FINAL for ${horizBar.partNumber}:`);
+    console.log(`  horizEndX=${horizEndX.toFixed(2)}mm, vertCogX=${vertCogX.toFixed(2)}mm`);
+    console.log(`  DIMENSION = |${vertCogX.toFixed(2)} - ${horizEndX.toFixed(2)}| = ${finalDimension.toFixed(2)}mm`);
 
     // Pure horizontal dimension: only X changes, Y and Z stay same (2D horizontal plane)
     segments.push({
