@@ -689,47 +689,9 @@ export const buildVLBDimensions = (
   if (rebChildren && rebChildren.length > 0) {
     const reb = rebChildren[0];  // Get the REB child object
     if (reb.bbox) {
-      const rebMinZ = reb.bbox.min.z;
-      const rebMaxZ = reb.bbox.max.z;
-      const couplerType = reb.couplerType;
-      const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
-      const rebarLength = reb.rebarLength;
-
-      // Determine which end is FIXED (closer to z=0, the bottom)
-      const distToMin = Math.abs(rebMinZ - 0);
-      const distToMax = Math.abs(rebMaxZ - 0);
-      const isFixedAtMin = distToMin < distToMax;
-      const fixedFromBbox = isFixedAtMin ? rebMinZ : rebMaxZ;
-
-      if (isMaleBridging && rebarLength !== undefined) {
-        // Calculate actual bar position from center using rebarLength
-        const rebCenterZ = (rebMinZ + rebMaxZ) / 2;
-        const rebHalfLength = rebarLength / 1000 / 2;
-        const rebStart = rebCenterZ - rebHalfLength;
-        const rebEnd = rebCenterZ + rebHalfLength;
-
-        // Determine which end is SHORT (measured from center)
-        const isShortAtStart = Math.abs(rebStart - rebCenterZ) <= Math.abs(rebEnd - rebCenterZ);
-        const shortEndZ = isShortAtStart ? rebStart : rebEnd;
-        const fixedFromRebar = isFixedAtMin ? rebStart : rebEnd;
-
-        // Coupler is at SHORT end; check if SHORT is at FIXED position
-        const isShortAtFixed = Math.abs(shortEndZ - fixedFromRebar) < 0.001;
-
-        if (isShortAtFixed) {
-          // Coupler is at FIXED end: exclude it by using rebar-based position
-          datumZ = fixedFromRebar * 1000;
-          console.log(`[JIG] View3: SHORT@FIXED+MALE+BRIDGING for ${reb.partNumber}, excluding coupler, datumZ=${datumZ}`);
-        } else {
-          // Coupler is at FAR end: use bbox-based position (includes 19mm)
-          datumZ = fixedFromBbox * 1000;
-          console.log(`[JIG] View3: using bbox for ${reb.partNumber} (coupler at FAR), datumZ=${datumZ}`);
-        }
-      } else {
-        // No MALE+BRIDGING or no rebarLength: use bbox-based position (includes coupler geometry)
-        datumZ = fixedFromBbox * 1000;
-        console.log(`[JIG] View3: using bbox for ${reb.partNumber} (coupler: ${couplerType || 'none'}), datumZ=${datumZ}`);
-      }
+      // View 3: Always measure from bottom (min.z), coupler is at top (max.z)
+      datumZ = reb.bbox.min.z * 1000;
+      console.log(`[JIG] View3: using REB bbox.min.z for ${reb.partNumber} (always from bottom), datumZ=${datumZ}`);
     }
   }
 
@@ -926,48 +888,9 @@ export const buildView4VerticalBarDimensions = (
     const vertBarCogX = (vertBar.bbox.min.x + vertBar.bbox.max.x) / 2 * 1000;
     const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
 
-    const vertBarMinZ = vertBar.bbox.min.z;
-    const vertBarMaxZ = vertBar.bbox.max.z;
-    const couplerType = vertBar.couplerType;
-    const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
-    const rebarLength = vertBar.rebarLength;
-
-    // Determine which end is FIXED (closer to z=0, the bottom)
-    const distToMinZ = Math.abs(vertBarMinZ - 0);
-    const distToMaxZ = Math.abs(vertBarMaxZ - 0);
-    const isFixedAtMin = distToMinZ < distToMaxZ;
-    const fixedFromBbox = isFixedAtMin ? vertBarMinZ : vertBarMaxZ;
-
-    let vertBarBottomZ: number;
-    if (isMaleBridging && rebarLength !== undefined) {
-      // Calculate actual bar position from center using rebarLength
-      const vertBarCenterZ = (vertBarMinZ + vertBarMaxZ) / 2;
-      const vertBarHalfLength = rebarLength / 1000 / 2;
-      const vertBarStart = vertBarCenterZ - vertBarHalfLength;
-      const vertBarEnd = vertBarCenterZ + vertBarHalfLength;
-
-      // Determine which end is SHORT (measured from center)
-      const isShortAtStart = Math.abs(vertBarStart - vertBarCenterZ) <= Math.abs(vertBarEnd - vertBarCenterZ);
-      const shortEndZ = isShortAtStart ? vertBarStart : vertBarEnd;
-      const fixedFromRebar = isFixedAtMin ? vertBarStart : vertBarEnd;
-
-      // Coupler is at SHORT end; check if SHORT is at FIXED position
-      const isShortAtFixed = Math.abs(shortEndZ - fixedFromRebar) < 0.001;
-
-      if (isShortAtFixed) {
-        // Coupler is at FIXED end: exclude it by using rebar-based position
-        vertBarBottomZ = fixedFromRebar * 1000;
-        console.log(`[JIG] View4: SHORT@FIXED+MALE+BRIDGING for ${vertBar.partNumber}, excluding coupler, bottomZ=${vertBarBottomZ}`);
-      } else {
-        // Coupler is at FAR end: use bbox-based position (includes 19mm)
-        vertBarBottomZ = fixedFromBbox * 1000;
-        console.log(`[JIG] View4: using bbox for ${vertBar.partNumber} (coupler at FAR), bottomZ=${vertBarBottomZ}`);
-      }
-    } else {
-      // No MALE+BRIDGING or no rebarLength: use bbox-based position (includes coupler geometry)
-      vertBarBottomZ = fixedFromBbox * 1000;
-      console.log(`[JIG] View4: using bbox for ${vertBar.partNumber} (coupler: ${couplerType || 'none'}), bottomZ=${vertBarBottomZ}`);
-    }
+    // View 4: Always measure from bottom (min.z), coupler is at top (max.z)
+    const vertBarBottomZ = vertBar.bbox.min.z * 1000;
+    console.log(`[JIG] View4: using bbox.min.z for ${vertBar.partNumber} (always from bottom), bottomZ=${vertBarBottomZ}`);
 
     // Pure vertical dimension: same X,Y from bottom to horizontal bar level
     segments.push({
