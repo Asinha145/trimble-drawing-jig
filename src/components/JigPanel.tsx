@@ -223,7 +223,14 @@ export const JigPanel: React.FC<Props> = ({ API, modelName }) => {
       const distMin = Math.abs(ends.min.x - datumX);
       const distMax = Math.abs(ends.max.x - datumX);
       const farthestEnd = distMin > distMax ? ends.min : ends.max;
-      await annotateAt(farthestEnd.x, farthestEnd.y, farthestEnd.z, shortLabel(reb.partNumber));
+
+      // For VLB (View 3), annotate REB at bottom (min.z) instead of farthest end
+      let annotZ = farthestEnd.z;
+      if (rtw && isVLBFamily(rtw.rtwFamily)) {
+        annotZ = ends.min.z;
+      }
+
+      await annotateAt(farthestEnd.x, farthestEnd.y, annotZ, shortLabel(reb.partNumber));
     }
 
     // Annotate STR children at farthest end from datum
