@@ -729,16 +729,16 @@ export const buildVLBDimensions = (
       groupEndZ = Math.max(groupEndZ, positions[i].zMax);
     } else {
       segments.push({
-        startX: dimX, startY: cogY, startZ: datumZ,
-        endX:   dimX, endY:   cogY, endZ:   groupStartZ,
+        startX: dimX, startY: cogY, startZ: groupStartZ,
+        endX:   dimX, endY:   cogY, endZ:   datumZ,
       });
       groupStartZ = positions[i].zMin;
       groupEndZ   = positions[i].zMax;
     }
   }
   segments.push({
-    startX: dimX, startY: cogY, startZ: datumZ,
-    endX:   dimX, endY:   cogY, endZ:   groupStartZ,
+    startX: dimX, startY: cogY, startZ: groupStartZ,
+    endX:   dimX, endY:   cogY, endZ:   datumZ,
   });
 
   return segments;
