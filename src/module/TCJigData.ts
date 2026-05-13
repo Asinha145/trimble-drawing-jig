@@ -690,21 +690,22 @@ export const buildVLBDimensions = (
     const reb = rebChildren[0];  // Get the REB child object
     if (reb.bbox) {
       // Coupler logic (positional/bridging):
-      // - MALE+BRIDGING: bridging extends beyond bar → subtract length from bbox.max
+      // - MALE+BRIDGING or MALE+POSITIONAL: extends beyond bar → subtract length from bbox.max
       // - FEMALE+BRIDGING: coupler at end, no extension → use bbox.min normally
       // - MALE or FEMALE (alone): no bridging component → use bbox.min normally
-      const isMaleBridging = reb.couplerType && reb.couplerType.includes('MALE+BRIDGING');
+      const couplerType = reb.couplerType;
+      const isMaleWithCoupler = couplerType && (couplerType.includes('MALE+BRIDGING') || couplerType.includes('MALE+POSITIONAL'));
 
-      console.log(`[JIG] View3 DEBUG: ${reb.partNumber}, coupler='${reb.couplerType}', isMaleBridging=${isMaleBridging}, rebarLength=${reb.rebarLength}, bbox.min.z=${reb.bbox.min.z}, bbox.max.z=${reb.bbox.max.z}`);
+      console.log(`[JIG] View3 DEBUG: ${reb.partNumber}, coupler='${couplerType}', isMaleWithCoupler=${isMaleWithCoupler}, rebarLength=${reb.rebarLength}, bbox.min.z=${reb.bbox.min.z}, bbox.max.z=${reb.bbox.max.z}`);
 
-      if (isMaleBridging && reb.rebarLength !== undefined) {
-        // MALE+BRIDGING: bridging extends beyond bar, subtract length to skip coupler
+      if (isMaleWithCoupler && reb.rebarLength !== undefined) {
+        // MALE+BRIDGING or MALE+POSITIONAL: coupler extends beyond bar, subtract length to skip coupler
         datumZ = (reb.bbox.max.z - reb.rebarLength / 1000) * 1000;
-        console.log(`[JIG] View3: MALE+BRIDGING detected, using REB bbox.max - rebarLength=${reb.rebarLength}mm for ${reb.partNumber}, datumZ=${datumZ}`);
+        console.log(`[JIG] View3: ${couplerType} detected, using REB bbox.max - rebarLength=${reb.rebarLength}mm for ${reb.partNumber}, datumZ=${datumZ}`);
       } else {
         // FEMALE+BRIDGING, MALE, FEMALE, or no coupler: use REB's bbox min.z (normal position)
         datumZ = reb.bbox.min.z * 1000;
-        console.log(`[JIG] View3: using REB bbox.min for ${reb.partNumber} (coupler: ${reb.couplerType || 'none'}), datumZ=${datumZ}`);
+        console.log(`[JIG] View3: using REB bbox.min for ${reb.partNumber} (coupler: ${couplerType || 'none'}), datumZ=${datumZ}`);
       }
     }
   }
@@ -903,19 +904,20 @@ export const buildView4VerticalBarDimensions = (
     const vertBarCogY = (vertBar.bbox.min.y + vertBar.bbox.max.y) / 2 * 1000;
 
     // Coupler logic (positional/bridging):
-    // - MALE+BRIDGING: bridging extends beyond bar → subtract length from bbox.max
+    // - MALE+BRIDGING or MALE+POSITIONAL: extends beyond bar → subtract length from bbox.max
     // - FEMALE+BRIDGING: coupler at end, no extension → use bbox.min normally
     // - MALE or FEMALE (alone): no bridging component → use bbox.min normally
     let vertBarBottomZ = vertBar.bbox.min.z * 1000;
-    const isMaleBridging = vertBar.couplerType && vertBar.couplerType.includes('MALE+BRIDGING');
+    const couplerType = vertBar.couplerType;
+    const isMaleWithCoupler = couplerType && (couplerType.includes('MALE+BRIDGING') || couplerType.includes('MALE+POSITIONAL'));
 
-    if (isMaleBridging && vertBar.rebarLength !== undefined) {
-      // MALE+BRIDGING: bridging extends beyond bar, subtract length to skip coupler
+    if (isMaleWithCoupler && vertBar.rebarLength !== undefined) {
+      // MALE+BRIDGING or MALE+POSITIONAL: coupler extends beyond bar, subtract length to skip coupler
       vertBarBottomZ = (vertBar.bbox.max.z - vertBar.rebarLength / 1000) * 1000;
-      console.log(`[JIG] View4: MALE+BRIDGING detected, using bbox.max - rebarLength=${vertBar.rebarLength}mm for ${vertBar.partNumber}, bottomZ=${vertBarBottomZ}`);
+      console.log(`[JIG] View4: ${couplerType} detected, using bbox.max - rebarLength=${vertBar.rebarLength}mm for ${vertBar.partNumber}, bottomZ=${vertBarBottomZ}`);
     } else {
       // FEMALE+BRIDGING, MALE, FEMALE, or no coupler: use bbox.min.z (normal position)
-      console.log(`[JIG] View4: using bbox.min for ${vertBar.partNumber} (coupler: ${vertBar.couplerType || 'none'}), bottomZ=${vertBarBottomZ}`);
+      console.log(`[JIG] View4: using bbox.min for ${vertBar.partNumber} (coupler: ${couplerType || 'none'}), bottomZ=${vertBarBottomZ}`);
     }
 
     // Pure vertical dimension: same X,Y from bottom to horizontal bar level
