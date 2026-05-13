@@ -773,7 +773,7 @@ export const buildHSBDimension = (
   let rebEndX: number;
   const rebarLength = (reb as any).rebarLength;
   const couplerType = (reb as any).couplerType;
-  const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
+  const isMaleWithCoupler = couplerType && (couplerType.includes('MALE+BRIDGING') || couplerType.includes('MALE+POSITIONAL'));
 
   if (rebarLength !== undefined) {
     // Calculate actual bar extent from center using rebarLength (for coupler detection only)
@@ -800,10 +800,10 @@ export const buildHSBDimension = (
     const distToMaxX = Math.abs(rebMaxX - datumX);
     const fixedFromBbox = distToMinX < distToMaxX ? rebMinX : rebMaxX;
 
-    if (isMaleBridging && isShortAtFixed) {
+    if (isMaleWithCoupler && isShortAtFixed) {
       // Coupler is at FIXED end: exclude it by using rebar-based position
       rebEndX = fixedFromRebar * 1000;
-      console.log(`[JIG] View5: SHORT@FIXED+MALE+BRIDGING for ${(reb as any).partNumber}, excluding coupler, rebEndX=${rebEndX}`);
+      console.log(`[JIG] View5: SHORT@FIXED+${couplerType} for ${(reb as any).partNumber}, excluding coupler, rebEndX=${rebEndX}`);
     } else {
       // Coupler is at FAR end or no coupler: use bbox-based position (includes 19mm)
       rebEndX = fixedFromBbox * 1000;
@@ -1009,7 +1009,7 @@ export const buildView6VerticalBarDimensions = (
 
     let closestEndX: number;
     const couplerType = horizBar.couplerType;
-    const isMaleBridging = couplerType && couplerType.includes('MALE+BRIDGING');
+    const isMaleWithCoupler = couplerType && (couplerType.includes('MALE+BRIDGING') || couplerType.includes('MALE+POSITIONAL'));
 
     if (horizBar.rebarLength !== undefined) {
       // rebarLength is accurate bar length; calculate actual bar extent from the center
@@ -1036,7 +1036,7 @@ export const buildView6VerticalBarDimensions = (
       const distToMaxX = Math.abs(barMaxX - datumX);
       const fixedFromBbox = distToMinX < distToMaxX ? barMinX : barMaxX;
 
-      if (isMaleBridging && isShortAtFixed) {
+      if (isMaleWithCoupler && isShortAtFixed) {
         // Coupler is at FIXED end: exclude it by using rebar-based position
         closestEndX = fixedFromRebar;
       } else {
