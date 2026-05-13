@@ -575,6 +575,7 @@ export const buildRTWFocusGroups = (
 export const buildView4FocusGroups = (data: JigData, hotPinkIds: Set<number>): ViewGroup[] => {
   const { objects, rtwById } = data;
   const groupMap = new Map<string, ViewGroup>();
+  const refBarId = (data as any).view4RefBarId ?? null;
 
   const add = (id: number, colour: RGBA, visible: boolean) => {
     const k = visible ? `${colour.r},${colour.g},${colour.b},${colour.a}` : '__hidden__';
@@ -593,6 +594,15 @@ export const buildView4FocusGroups = (data: JigData, hotPinkIds: Set<number>): V
     }
     if (isRebarFamily(o.family)) {
       const parentRtw = o.rtwChildOf != null ? rtwById.get(o.rtwChildOf) : undefined;
+
+      // Check if this is the reference bar first
+      if (o.id === refBarId) {
+        // Reference bar: 5% opacity with color (RTW color if it has parent, grey otherwise)
+        const baseColor = parentRtw?.rtwFamily ? RTW_COLOURS[parentRtw.rtwFamily] : GREY_FULL;
+        add(o.id, withAlpha(baseColor, 13), true); // 5% opacity = ~13/255
+        continue;
+      }
+
       if (parentRtw?.rtwFamily && isVLBFamily(parentRtw.rtwFamily)) {
         add(o.id, hotPinkIds.has(o.id) ? HOT_PINK : withAlpha(RTW_COLOURS[parentRtw.rtwFamily], 26), true);
         continue;
@@ -872,6 +882,22 @@ export const buildView4VerticalBarDimensions = (
   if (!bottomHorizBar || !bottomHorizBar.bbox) return [];
 
   const horizCogZ = (bottomHorizBar.bbox.min.z + bottomHorizBar.bbox.max.z) / 2 * 1000;
+
+  // ── find closest vertical bar to datum (reference bar) ──────────────────────
+  let closestVertBar: typeof objects[0] | null = null;
+  let minVertDist = Infinity;
+  for (const vBar of verticalBars) {
+    if (!vBar.bbox) continue;
+    const vBarCenterX = (vBar.bbox.min.x + vBar.bbox.max.x) / 2;
+    const distToDatum = Math.abs(vBarCenterX - datumX);
+    if (distToDatum < minVertDist) {
+      minVertDist = distToDatum;
+      closestVertBar = vBar;
+    }
+  }
+
+  // Store reference bar ID in data for View 4 focus groups
+  (data as any).view4RefBarId = closestVertBar?.id ?? null;
 
   // ── group vertical bars by mark, sorted by distance from datum ──────────────
   const barsByMark = new Map<string, typeof verticalBars>();
